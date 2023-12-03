@@ -58,8 +58,14 @@
 
         // Prevent image selection on double-tap
         var img = document.querySelector('img');
-        img.addEventListener('mousedown', function (e) {
-            if (e.detail > 1) {
+        var touchStart = 0;
+        img.addEventListener('touchstart', function (e) {
+            touchStart = e.timeStamp;
+        });
+
+        img.addEventListener('touchend', function (e) {
+            var touchEnd = e.timeStamp;
+            if (touchEnd - touchStart < 500) {
                 e.preventDefault();
             }
         });
