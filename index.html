@@ -16,6 +16,8 @@
             overflow: hidden; /* Hide scroll bars */
             transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
             user-select: none;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0); /* Disable tap highlighting on iOS */
+            -webkit-touch-callout: none; /* Disable the callout (context menu) on long tap on iOS */
         }
 
         img {
