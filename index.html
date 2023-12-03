@@ -26,6 +26,7 @@
             -webkit-user-select: none; 
             -moz-user-select: none; 
             -ms-user-select: none;
+            pointer-events: none; /* Disable pointer events on the image */
         }
 
         .inverted {
@@ -44,18 +45,14 @@
             document.body.classList.toggle('inverted');
         }
 
-        // Toggle color inversion on mouse click anywhere on the page
-        document.addEventListener('click', function () {
+        // Toggle color inversion on touch anywhere on the page
+        document.addEventListener('touchstart', function (e) {
             toggleInvert();
+            e.preventDefault(); // Prevent default touch action
         });
 
-        // Disable right-click on the image
+        // Disable context menu on long tap
         document.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-        });
-
-        // Disable drag-and-drop on the image
-        document.addEventListener('dragstart', function (e) {
             e.preventDefault();
         });
     </script>
