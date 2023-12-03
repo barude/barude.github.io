@@ -15,8 +15,6 @@
             background-color: #000000;
             overflow: hidden; /* Hide scroll bars */
             transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
-            user-select: none; /* Disable text selection */
-            -webkit-tap-highlight-color: transparent; /* Disable tap highlight on iOS */
         }
 
         img {
@@ -24,8 +22,7 @@
             max-height: 100vh; /* Adjust the maximum height to your preference */
             width: auto;
             height: auto;
-            user-select: none; /* Disable text selection */
-            -webkit-user-drag: none; /* Disable dragging for iOS Safari */
+            user-select: none; /* Disable user selection */
         }
 
         .inverted {
@@ -45,11 +42,7 @@
         }
 
         // Toggle color inversion on mouse click anywhere on the page
-        document.addEventListener('click', function (event) {
-            // Prevent text selection on double-tap
-            if (event.detail > 1) {
-                event.preventDefault();
-            }
+        document.addEventListener('click', function () {
             toggleInvert();
         });
 
@@ -63,14 +56,12 @@
             e.preventDefault();
         });
 
-        var lastTapTime = 0;
-        document.addEventListener('touchstart', function (e) {
-            var currentTime = new Date().getTime();
-            var tapLength = currentTime - lastTapTime;
-            if (tapLength < 500 && tapLength > 0) {
+        // Prevent image selection on double-tap
+        var img = document.querySelector('img');
+        img.addEventListener('mousedown', function (e) {
+            if (e.detail > 1) {
                 e.preventDefault();
             }
-            lastTapTime = currentTime;
         });
     </script>
 </head>
