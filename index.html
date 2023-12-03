@@ -14,7 +14,7 @@
             margin: 0;
             background-color: #000000;
             overflow: hidden; /* Hide scroll bars */
-            transition: filter 0.5s; /* Add transition for smooth color inversion */
+            transition: filter 0.5s, background-color 0.5s; /* Add transition for smooth color inversion */
         }
 
         img {
@@ -26,6 +26,7 @@
 
         .inverted {
             filter: invert(1);
+            background-color: #ffffff; /* Inverted background color */
         }
 
         @media (max-width: 768px) {
