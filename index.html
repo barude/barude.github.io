@@ -42,6 +42,12 @@
         document.addEventListener('dragstart', function (e) {
             e.preventDefault();
         });
+
+        // Disable right-click on the image for mobile
+        document.querySelector('img').addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        });
+    </script
     </script>
 </head>
 <body>
