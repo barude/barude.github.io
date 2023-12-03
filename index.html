@@ -26,6 +26,10 @@
             align-self: center; /* Vertical centering */
         }
 
+        .inverted {
+            filter: invert(1); /* Invert colors */
+        }
+
         @media (max-width: 768px) {
             img {
                 max-height: 60vh; /* Adjust the maximum height for mobile */
@@ -34,6 +38,11 @@
         
     </style>
     <script>
+        // Function to toggle the inverted class on the body
+        function toggleInverted() {
+            document.body.classList.toggle('inverted');
+        }
+
         // Disable right-click on the image
         document.addEventListener('contextmenu', function (e) {
             e.preventDefault();
@@ -48,7 +57,9 @@
         document.querySelector('img').addEventListener('contextmenu', function (e) {
             e.preventDefault();
         });
-    </script
+
+        // Add click event listener to the body to toggle inverted class
+        document.body.addEventListener('click', toggleInverted);
     </script>
 </head>
 <body>
