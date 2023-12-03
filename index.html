@@ -9,12 +9,13 @@
         body {
             display: flex;
             align-items: center;
+            align-self: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
             background-color: #000000;
             overflow: hidden; /* Hide scroll bars */
-            transition: filter 0.3s ease; /* Smooth transition for the filter */
+            /* filter: invert(1); /* Invert colors */
         }
 
         img {
@@ -25,10 +26,6 @@
             align-self: center; /* Vertical centering */
         }
 
-        .invert {
-            filter: invert(1); /* Invert colors */
-        }
-
         @media (max-width: 768px) {
             img {
                 max-height: 60vh; /* Adjust the maximum height for mobile */
@@ -37,6 +34,12 @@
         
     </style>
     <script>
+        // Toggle color inversion on click
+        document.body.addEventListener('click', function () {
+            // Invert colors by toggling the 'invert' class on the body
+            document.body.classList.toggle('invert');
+        });
+
         // Disable right-click on the image
         document.addEventListener('contextmenu', function (e) {
             e.preventDefault();
@@ -47,9 +50,9 @@
             e.preventDefault();
         });
 
-        // Toggle invert class on body click
-        document.body.addEventListener('click', function () {
-            document.body.classList.toggle('invert');
+        // Disable right-click on the image for mobile
+        document.querySelector('img').addEventListener('contextmenu', function (e) {
+            e.preventDefault();
         });
     </script>
 </head>
