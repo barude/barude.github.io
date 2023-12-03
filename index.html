@@ -9,13 +9,12 @@
         body {
             display: flex;
             align-items: center;
-            align-self: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
             background-color: #000000;
             overflow: hidden; /* Hide scroll bars */
-            /* filter: invert(1); /* Invert colors */
+            transition: filter 0.5s; /* Add transition for smooth color inversion */
         }
 
         img {
@@ -23,7 +22,10 @@
             max-height: 100vh; /* Adjust the maximum height to your preference */
             width: auto;
             height: auto;
-            align-self: center; /* Vertical centering */
+        }
+
+        .inverted {
+            filter: invert(1);
         }
 
         @media (max-width: 768px) {
@@ -31,13 +33,15 @@
                 max-height: 60vh; /* Adjust the maximum height for mobile */
             }
         }
-        
     </style>
     <script>
-        // Toggle color inversion on click
-        document.body.addEventListener('click', function () {
-            // Invert colors by toggling the 'invert' class on the body
-            document.body.classList.toggle('invert');
+        function toggleInvert() {
+            document.body.classList.toggle('inverted');
+        }
+
+        // Toggle color inversion on mouse click anywhere on the page
+        document.addEventListener('click', function () {
+            toggleInvert();
         });
 
         // Disable right-click on the image
@@ -47,11 +51,6 @@
 
         // Disable drag-and-drop on the image
         document.addEventListener('dragstart', function (e) {
-            e.preventDefault();
-        });
-
-        // Disable right-click on the image for mobile
-        document.querySelector('img').addEventListener('contextmenu', function (e) {
             e.preventDefault();
         });
     </script>
