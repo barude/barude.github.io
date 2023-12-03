@@ -9,12 +9,12 @@
         body {
             display: flex;
             align-items: center;
-            align-self: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
             background-color: #000000;
             overflow: hidden; /* Hide scroll bars */
+            transition: filter 0.5s; /* Add transition for smooth color change */
         }
 
         img {
@@ -22,7 +22,6 @@
             max-height: 100vh; /* Adjust the maximum height to your preference */
             width: auto;
             height: auto;
-            align-self: center; /* Vertical centering */
         }
 
         .inverted {
@@ -34,9 +33,12 @@
                 max-height: 60vh; /* Adjust the maximum height for mobile */
             }
         }
-        
     </style>
     <script>
+        // Function to toggle the inverted class on the body
+        function toggleInverted() {
+            document.body.classList.toggle('inverted');
+        }
 
         // Disable right-click on the image
         document.addEventListener('contextmenu', function (e) {
