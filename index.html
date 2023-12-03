@@ -58,20 +58,6 @@
         document.addEventListener('dragstart', function (e) {
             e.preventDefault();
         });
-
-        // Prevent image selection on double-tap
-        var img = document.querySelector('img');
-        var touchStart = 0;
-        img.addEventListener('touchstart', function (e) {
-            touchStart = e.timeStamp;
-        });
-
-        img.addEventListener('touchend', function (e) {
-            var touchEnd = e.timeStamp;
-            if (touchEnd - touchStart < 500) {
-                e.preventDefault();
-            }
-        });
     </script>
 </head>
 <body>
