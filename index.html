@@ -14,7 +14,7 @@
             margin: 0;
             background-color: #000000;
             overflow: hidden; /* Hide scroll bars */
-            transition: filter 0.5s; /* Add transition for smooth color change */
+            transition: filter 0.3s ease; /* Smooth transition for the filter */
         }
 
         img {
@@ -22,9 +22,10 @@
             max-height: 100vh; /* Adjust the maximum height to your preference */
             width: auto;
             height: auto;
+            align-self: center; /* Vertical centering */
         }
 
-        .inverted {
+        .invert {
             filter: invert(1); /* Invert colors */
         }
 
@@ -33,13 +34,9 @@
                 max-height: 60vh; /* Adjust the maximum height for mobile */
             }
         }
+        
     </style>
     <script>
-        // Function to toggle the inverted class on the body
-        function toggleInverted() {
-            document.body.classList.toggle('inverted');
-        }
-
         // Disable right-click on the image
         document.addEventListener('contextmenu', function (e) {
             e.preventDefault();
@@ -50,13 +47,10 @@
             e.preventDefault();
         });
 
-        // Disable right-click on the image for mobile
-        document.querySelector('img').addEventListener('contextmenu', function (e) {
-            e.preventDefault();
+        // Toggle invert class on body click
+        document.body.addEventListener('click', function () {
+            document.body.classList.toggle('invert');
         });
-
-        // Add click event listener to the body to toggle inverted class
-        document.body.addEventListener('click', toggleInverted);
     </script>
 </head>
 <body>
