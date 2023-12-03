@@ -15,9 +15,6 @@
             background-color: #000000;
             overflow: hidden; /* Hide scroll bars */
             transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
-            user-select: none;
-            -webkit-tap-highlight-color: rgba(0, 0, 0, 0); /* Disable tap highlighting on iOS */
-            -webkit-touch-callout: none; /* Disable the callout (context menu) on long tap on iOS */
         }
 
         img {
@@ -44,7 +41,11 @@
         }
 
         // Toggle color inversion on mouse click anywhere on the page
-        document.addEventListener('click', function () {
+        document.addEventListener('click', function (event) {
+            // Prevent text selection on double-tap
+            if (event.detail > 1) {
+                event.preventDefault();
+            }
             toggleInvert();
         });
 
