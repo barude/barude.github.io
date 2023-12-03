@@ -60,6 +60,16 @@
         document.addEventListener('dragstart', function (e) {
             e.preventDefault();
         });
+
+        var lastTapTime = 0;
+        document.addEventListener('touchstart', function (e) {
+            var currentTime = new Date().getTime();
+            var tapLength = currentTime - lastTapTime;
+            if (tapLength < 500 && tapLength > 0) {
+                e.preventDefault();
+            }
+            lastTapTime = currentTime;
+        });
     </script>
 </head>
 <body>
