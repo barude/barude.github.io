@@ -6,19 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barüde</title>
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
         body {
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            flex: 1;
-            margin: 0;
+            height: 80vh; /* Allow the body to grow taller if needed */
             background-color: #000000;
-            overflow: hidden;
-            transition: filter 0.0s, background-color 0.0s;
-}
-        
+            overflow: hidden; /* Hide scroll bars */
+            transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
+        }
+
         img {
             max-width: 100%;
             max-height: 100vh; /* Adjust the maximum height to your preference */
@@ -35,21 +38,13 @@
             background-color: #ffffff; /* Inverted background color */
         }
 
-     @media not all and (min-resolution:.001dpcm) { 
-    @media {
-        body {
-            display: block;
-        }
-    }
-}
-        
         @media (max-width: 768px) {
             body {
                 height: auto; /* Adjust the height to auto for mobile */
             }
 
             img {
-                max-height: 60vh; /* Adjust the maximum height for mobile */
+                max-height: 75vh; /* Adjust the maximum height for mobile */
                 pointer-events: none; /* Disable pointer events on the image */
             }
         }
