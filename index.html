@@ -13,16 +13,17 @@
             height: 100vh;
             margin: 0;
             background-color: #000000;
-            overflow: hidden; /* Hide scroll bars */
-            transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
+            overflow: hidden;
+            transition: filter 0.0s, background-color 0.0s;
+            position: relative; /* Add position relative for absolute positioning of the marquee */
         }
 
         img {
             max-width: 100%;
-            max-height: 100vh; /* Adjust the maximum height to your preference */
+            max-height: 100vh;
             width: auto;
             height: auto;
-            user-select: none; /* Disable user selection */
+            user-select: none;
             -webkit-user-select: none; 
             -moz-user-select: none; 
             -ms-user-select: none;
@@ -30,13 +31,35 @@
 
         .inverted {
             filter: invert(1);
-            background-color: #ffffff; /* Inverted background color */
+            background-color: #ffffff;
         }
 
         @media (max-width: 768px) {
             img {
-                max-height: 60vh; /* Adjust the maximum height for mobile */
-                pointer-events: none; /* Disable pointer events on the image */
+                max-height: 60vh;
+                pointer-events: none;
+            }
+        }
+
+        .marquee {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 100px; /* Adjust the width of the marquee */
+            background-color: #000000; /* Adjust the background color of the marquee */
+            color: #ffffff; /* Adjust the text color of the marquee */
+            white-space: nowrap;
+            overflow: hidden;
+            animation: marqueeAnimation 8s linear infinite;
+        }
+
+        @keyframes marqueeAnimation {
+            0% {
+                transform: translateY(100%);
+            }
+            100% {
+                transform: translateY(-100%);
             }
         }
     </style>
@@ -45,23 +68,21 @@
             document.body.classList.toggle('inverted');
         }
 
-        // Toggle color inversion on mouse click anywhere on the page
         document.addEventListener('click', function () {
             toggleInvert();
         });
 
-        // Disable right-click on the image
         document.addEventListener('contextmenu', function (e) {
             e.preventDefault();
         });
 
-        // Disable drag-and-drop on the image
         document.addEventListener('dragstart', function (e) {
             e.preventDefault();
         });
     </script>
 </head>
 <body>
+    <div class="marquee">OFFLINE!</div>
     <img src="https://freight.cargo.site/t/original/i/bce22ba3083d0c45c6c38de3a1740aa5b3658bc49a0b2f64e65a4ce440530fd8/48832813471_50903d9876_o-rcopy.png" alt="Barüde Logo">
 </body>
 </html>
