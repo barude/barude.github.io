@@ -8,16 +8,17 @@
     <style>
         body {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh; /* Minimum height of 100% of the viewport height */
-            height: 80vh; /* Allow the body to grow taller if needed */
+            min-height: 100vh;
+            flex: 1;
             margin: 0;
             background-color: #000000;
-            overflow: hidden; /* Hide scroll bars */
-            transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
-        }
-
+            overflow: hidden;
+            transition: filter 0.0s, background-color 0.0s;
+}
+        
         img {
             max-width: 100%;
             max-height: 100vh; /* Adjust the maximum height to your preference */
@@ -40,7 +41,7 @@
             }
 
             img {
-                max-height: 75vh; /* Adjust the maximum height for mobile */
+                max-height: 60vh; /* Adjust the maximum height for mobile */
                 pointer-events: none; /* Disable pointer events on the image */
             }
         }
