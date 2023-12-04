@@ -35,7 +35,7 @@
 
         @media (max-width: 768px) {
             body {
-                min-height: 100vh; /* Ensure the body covers at least the full viewport height on mobile */
+                height: auto; /* Adjust the height to auto for mobile */
             }
 
             img {
@@ -47,6 +47,7 @@
     <script>
         function toggleInvert() {
             document.body.classList.toggle('inverted');
+            document.querySelector('img').classList.toggle('inverted');
         }
 
         // Toggle color inversion on mouse click anywhere on the page
