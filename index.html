@@ -1,71 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barüde</title>
-    <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #000000;
-            overflow: hidden; /* Hide scroll bars */
-            transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
-        }
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #000000;
+    overflow: hidden;
+    transition: filter 0.0s, background-color 0.0s;
+}
 
-        img {
-            max-width: 100%;
-            max-height: 100vh; /* Adjust the maximum height to your preference */
-            width: auto;
-            height: auto;
-            user-select: none; /* Disable user selection */
-            -webkit-user-select: none; 
-            -moz-user-select: none; 
-            -ms-user-select: none;
-        }
+img {
+    max-width: 100%;
+    max-height: 100vh;
+    width: auto;
+    height: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
 
-        .inverted {
-            filter: invert(1);
-            background-color: #ffffff; /* Inverted background color */
-        }
+.inverted {
+    filter: invert(1);
+}
 
-        @media (max-width: 768px) {
-            body {
-                height: auto; /* Adjust the height to auto for mobile */
-            }
+@media (max-width: 768px) {
+    body {
+        height: auto;
+    }
 
-            img {
-                max-height: 40vh; /* Adjust the maximum height for mobile */
-                pointer-events: none; /* Disable pointer events on the image */
-            }
-        }
-    </style>
-    <script>
-        function toggleInvert() {
-            document.body.classList.toggle('inverted');
-        }
+    img {
+        max-height: 40vh;
+        pointer-events: none;
+    }
 
-        // Toggle color inversion on mouse click anywhere on the page
-        document.addEventListener('click', function () {
-            toggleInvert();
-        });
-
-        // Disable right-click on the image
-        document.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-        });
-
-        // Disable drag-and-drop on the image
-        document.addEventListener('dragstart', function (e) {
-            e.preventDefault();
-        });
-    </script>
-</head>
-<body>
-    <img src="https://freight.cargo.site/t/original/i/bce22ba3083d0c45c6c38de3a1740aa5b3658bc49a0b2f64e65a4ce440530fd8/48832813471_50903d9876_o-rcopy.png" alt="Barüde Logo">
-</body>
-</html>
+    body.inverted {
+        background-color: #ffffff;
+    }
+}
