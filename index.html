@@ -8,13 +8,15 @@
     <style>
         body {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #000000;
-            overflow: hidden; /* Hide scroll bars */
-            transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh; /* Minimum height of 100% of the viewport height */
+    height: auto; /* Allow the body to grow taller if needed */
+    margin: 0;
+    background-color: #000000;
+    overflow: hidden; /* Hide scroll bars */
+    transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
+
         }
 
         img {
