@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barüde</title>
     <style>
-        html, body {
-            height: 100%;
-            margin: 0;
+        body {
             display: flex;
             align-items: center;
             justify-content: center;
+            height: 100vh;
+            margin: 0;
             background-color: #000000;
             overflow: hidden; /* Hide scroll bars */
             transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
@@ -34,8 +34,12 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                height: auto; /* Adjust the height to auto for mobile */
+            }
+
             img {
-                max-height: 60vh; /* Adjust the maximum height for mobile */
+                max-height: 40vh; /* Adjust the maximum height for mobile */
                 pointer-events: none; /* Disable pointer events on the image */
             }
         }
