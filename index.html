@@ -2,76 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta https-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barüde</title>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
-
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 80vh; /* Allow the body to grow taller if needed */
-            background-color: #000000;
-            overflow: hidden; /* Hide scroll bars */
-            transition: filter 0.0s, background-color 0.0s; /* Add transition for smooth color inversion */
-        }
-
-        img {
-            max-width: 100%;
-            max-height: 100vh; /* Adjust the maximum height to your preference */
-            width: auto;
-            height: auto;
-            user-select: none; /* Disable user selection */
-            -webkit-user-select: none; 
-            -moz-user-select: none; 
-            -ms-user-select: none;
-        }
-
-        .inverted {
-            filter: invert(1);
-            background-color: #ffffff; /* Inverted background color */
-        }
-
-        @media (max-width: 100vh) {
-            body {
-                height: auto; /* Adjust the height to auto for mobile */
-                align-self: center;
-            }
-
-            img {
-                max-height: 75vh; /* Adjust the maximum height for mobile */
-                pointer-events: none; /* Disable pointer events on the image */
-            }
-        }
-    </style>
-    <script>
-        function toggleInvert() {
-            document.documentElement.classList.toggle('inverted');
-        }
-
-        // Toggle color inversion on mouse click anywhere on the page
-        document.addEventListener('click', function () {
-            toggleInvert();
-        });
-
-        // Disable right-click on the image
-        document.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-        });
-
-        // Disable drag-and-drop on the image
-        document.addEventListener('dragstart', function (e) {
-            e.preventDefault();
-        });
-    </script>
+    <title>Retro TV Effect</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <img src="https://freight.cargo.site/t/original/i/bce22ba3083d0c45c6c38de3a1740aa5b3658bc49a0b2f64e65a4ce440530fd8/48832813471_50903d9876_o-rcopy.png" alt="Barüde Logo">
+    <div class="tv-container">
+        <iframe class="tv-screen" src="https://www.youtube.com/embed/v6-K-arVl-U?autoplay=1" frameborder="0" allowfullscreen></iframe>
+        <div class="tv-overlay"></div>
+    </div>
 </body>
 </html>
