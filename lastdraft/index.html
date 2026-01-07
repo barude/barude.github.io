@@ -15,90 +15,105 @@
             --font: 'Courier Prime', 'Courier New', Courier, monospace;
         }
 
-        /* Light Mode - Gentle on the eyes */
-        body.light-mode {
-            --bg: #f5f3ef;
-            --paper: #faf8f4;
-            --text: #3a3834;
-            --select-highlight: rgba(74, 144, 226, 0.15);
-        }
+        /* Light Mode — Daylight Writing Optimized */
+body.light-mode {
+    /* Canvas */
+    --bg: #f1efe9;          /* soft daylight linen */
+    --paper: #f7f5f0;       /* warm paper surface */
 
-        body.light-mode #floating-actions button {
-            background: rgba(250, 248, 244, 0.9);
-            color: #4a4844;
-            border: 1px solid rgba(200, 195, 185, 0.5);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
+    /* Text */
+    --text: #45433f;        /* softened graphite, not black */
 
-        body.light-mode #floating-actions button:hover {
-            background: rgba(245, 243, 239, 0.95);
-            border-color: rgba(180, 175, 165, 0.7);
-        }
+    /* Selection */
+    --select-highlight: rgba(120, 155, 145, 0.18); /* muted teal focus */
 
-        body.light-mode .container-box {
-            border-left-color: rgba(100, 150, 255, 0.25);
-        }
+    /* UI Accents */
+    --accent-soft: rgba(120, 155, 145, 0.25);
+    --accent-strong: #6f9c91;
+}
 
-        body.light-mode .container-header {
-            opacity: 0.5;
-        }
-        body.light-mode .container-box:hover .container-header {
-            opacity: 1;
-        }
-        body.light-mode .container-version-controls {
-            color: #7a7874;
-        }
-        body.light-mode .container-version-btn {
-            color: #7a7874;
-        }
-        body.light-mode .container-version-btn:hover {
-            background: rgba(100, 150, 255, 0.15);
-            color: #6a6864;
-        }
-        body.light-mode .container-version-number {
-            color: #7a7874;
-        }
-        body.light-mode .container-add-btn {
-            color: #4a8;
-        }
-        body.light-mode .container-add-btn:hover {
-            color: #5b9;
-            background: rgba(90, 170, 153, 0.15);
-        }
-        body.light-mode .container-ungroup-btn {
-            color: #955;
-        }
-        body.light-mode .container-ungroup-btn:hover {
-            color: #a66;
-            background: rgba(170, 102, 102, 0.15);
-        }
+/* Floating actions */
+body.light-mode #floating-actions button {
+    background: rgba(247, 245, 240, 0.92);
+    color: #4f4d49;
+    border: 1px solid rgba(195, 190, 180, 0.55);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
 
-        body.light-mode .gutter select.type-select {
-            background: #f5f3ef;
-            color: #5a5854;
-            border-color: rgba(200, 195, 185, 0.6);
-        }
+body.light-mode #floating-actions button:hover {
+    background: rgba(241, 239, 233, 0.95);
+    border-color: rgba(175, 170, 160, 0.7);
+}
 
-        body.light-mode #selection-bar {
-            background: #faf8f4;
-            border-color: rgba(200, 195, 185, 0.6);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
+/* Containers */
+body.light-mode .container-box {
+    border-left-color: var(--accent-soft);
+}
 
-        body.light-mode #selection-bar span {
-            color: #5a5854;
-        }
+body.light-mode .container-header {
+    opacity: 0.45;
+}
+body.light-mode .container-box:hover .container-header {
+    opacity: 0.9;
+}
 
-        body.light-mode #selection-bar button {
-            background: #f5f3ef;
-            color: #4a4844;
-            border-color: rgba(200, 195, 185, 0.5);
-        }
+/* Version controls */
+body.light-mode .container-version-controls,
+body.light-mode .container-version-number,
+body.light-mode .container-version-btn {
+    color: #7a7771;
+}
 
-        body.light-mode #selection-bar button.primary {
-            background: #4a4844;
-            color: #faf8f4;
-        }
+body.light-mode .container-version-btn:hover {
+    background: rgba(120, 155, 145, 0.14);
+    color: #5f6f6a;
+}
+
+/* Add / remove actions */
+body.light-mode .container-add-btn {
+    color: #5c8f84;
+}
+body.light-mode .container-add-btn:hover {
+    background: rgba(92, 143, 132, 0.15);
+    color: #4f8076;
+}
+
+body.light-mode .container-ungroup-btn {
+    color: #8b5a5a;
+}
+body.light-mode .container-ungroup-btn:hover {
+    background: rgba(139, 90, 90, 0.14);
+    color: #7a4f4f;
+}
+
+/* Gutter */
+body.light-mode .gutter select.type-select {
+    background: var(--paper);
+    color: #5f5d58;
+    border-color: rgba(195, 190, 180, 0.6);
+}
+
+/* Selection bar */
+body.light-mode #selection-bar {
+    background: var(--paper);
+    border-color: rgba(195, 190, 180, 0.6);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode #selection-bar span {
+    color: #5f5d58;
+}
+
+body.light-mode #selection-bar button {
+    background: var(--bg);
+    color: #4f4d49;
+    border-color: rgba(195, 190, 180, 0.5);
+}
+
+body.light-mode #selection-bar button.primary {
+    background: #4f6f67;
+    color: #f7f5f0;
+}
 
         /* RESET */
         html, body { height: 100%; margin: 0; padding: 0; }
