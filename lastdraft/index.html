@@ -1,24 +1,34 @@
 <!DOCTYPE html>
+<!--
+    Last Draft
+    A screenplay editor for infinite drafts.
+
+    By Omar El Beharey
+    Barüde — barude.com
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Last Draft — a screenplay editor by Barüde.">
+    <meta name="author" content="Omar El Beharey">
+    <meta name="application-name" content="Last Draft">
     <title>Last Draft</title>
     <style>
         /* --- THEME --- */
         :root {
-            --bg: #101010;
-            --paper: #181818;
-            --text: #e0e0e0;
+            --bg: #0e0e0e;
+            --paper: #161616;
+            --text: #d8d4cd;
             --accent: #4a90e2;
             --select-highlight: rgba(74, 144, 226, 0.25);
-            --font: 'Courier Prime', 'Courier New', Courier, monospace;
+            --font: 'Courier Final Draft', 'Courier Prime', 'Courier New', Courier, monospace;
         }
 
         body.light-mode {
-            --bg: #f5f3ef;
-            --paper: #faf8f4;
-            --text: #3a3834;
+            --bg: #e6e3db;
+            --paper: #f7f4ee;
+            --text: #2c2a26;
             --select-highlight: rgba(74, 144, 226, 0.15);
         }
 
@@ -97,6 +107,7 @@
             display: block; position: relative;
             border-left: 3px solid transparent;
             margin: 0; padding: 0;
+            max-width: 100%; overflow: hidden; /* contain long unbroken strings */
         }
         .row.multi-selected { background: var(--select-highlight); border-left-color: var(--accent); }
 
@@ -227,12 +238,19 @@
         body.light-mode .type-select-option.active { background: rgba(240, 238, 234, 0.95); color: var(--accent); }
 
         /* -------------------- INPUT GRID -------------------- */
-        .input-grid { display: grid; align-items: start; }
+        .input-grid {
+            display: grid; align-items: start;
+            min-width: 0; overflow: hidden; width: 100%; /* min-width:0 prevents grid items from overflowing */
+        }
         .replicator, textarea {
             grid-area: 1 / 1 / 2 / 2; font-family: var(--font); font-size: 12pt;
             line-height: 1.05; padding: 0; margin: 0; border: none; width: 100%;
-            box-sizing: border-box; white-space: pre-wrap; word-wrap: break-word;
-            display: block; height: auto; min-height: 0;
+            box-sizing: border-box;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+            display: block; height: auto; min-height: 0; min-width: 0;
         }
         .row.character .replicator, .row.character textarea,
         .row.parenthetical .replicator, .row.parenthetical textarea,
@@ -271,20 +289,55 @@
         #selection-bar.visible { display: flex; animation: popUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
-        /* -------------------- FORMATTING -------------------- */
-        .scene textarea, .scene .replicator { font-weight: bold; text-transform: uppercase; }
-        .character textarea, .character .replicator { text-align: center; margin-left: 18%; width: 64%; text-transform: uppercase; }
-        .parenthetical textarea, .parenthetical .replicator { margin-left: 28%; width: 44%; }
-        .dialogue textarea, .dialogue .replicator { margin-left: 18%; width: 64%; }
-        .transition textarea, .transition .replicator { text-align: right; text-transform: uppercase; }
+        /* -------------------- FORMATTING --------------------
+           Indents proportional to the 7.27in A4 content area.
+           Character uses deep left indent (not CSS center) — correct screenplay format.
+           RTL rules below mirror all geometry for Arabic text. */
+        .scene textarea, .scene .replicator {
+            font-weight: normal; text-transform: uppercase;
+            text-decoration: underline;
+            margin-left: 8.1%; width: 86.5%;
+        }
+        .action textarea, .action .replicator {
+            margin-left: 8.1%; width: 86.5%;
+        }
+        .character textarea, .character .replicator {
+            text-align: left;
+            margin-left: 41.3%; width: 53.5%; text-transform: uppercase;
+        }
+        .parenthetical textarea, .parenthetical .replicator {
+            margin-left: 28.3%; width: 37.9%;
+            text-indent: 1.4%;
+        }
+        .dialogue textarea, .dialogue .replicator {
+            margin-left: 22.1%; width: 54.5%;
+        }
+        .transition textarea, .transition .replicator {
+            text-align: right; text-transform: uppercase;
+            margin-left: 62.3%; width: 33.9%;
+        }
 
-        /* ARABIC (RTL) */
+        /* RTL — mirror all geometry */
         .row[dir="rtl"] textarea, .row[dir="rtl"] .replicator { direction: rtl; unicode-bidi: embed; }
-        .row[dir="rtl"].scene textarea, .row[dir="rtl"].scene .replicator { text-align: right; }
-        .row[dir="rtl"].action textarea, .row[dir="rtl"].action .replicator { text-align: right; }
-        .row[dir="rtl"].character textarea, .row[dir="rtl"].character .replicator { text-align: center; margin-right: 18%; margin-left: 18%; }
-        .row[dir="rtl"].dialogue textarea, .row[dir="rtl"].dialogue .replicator { text-align: right; margin-right: 18%; margin-left: 18%; }
-        .row[dir="rtl"].parenthetical textarea, .row[dir="rtl"].parenthetical .replicator { text-align: right; margin-right: 28%; margin-left: 0; }
+        .row[dir="rtl"].scene textarea, .row[dir="rtl"].scene .replicator {
+            text-align: right; margin-right: 8.1%; margin-left: 5.4%; width: 86.5%;
+        }
+        .row[dir="rtl"].action textarea, .row[dir="rtl"].action .replicator {
+            text-align: right; margin-right: 8.1%; margin-left: 5.4%; width: 86.5%;
+        }
+        .row[dir="rtl"].character textarea, .row[dir="rtl"].character .replicator {
+            text-align: right; margin-right: 41.3%; margin-left: 5.2%; width: 53.5%;
+        }
+        .row[dir="rtl"].dialogue textarea, .row[dir="rtl"].dialogue .replicator {
+            text-align: right; margin-right: 22.1%; margin-left: 23.4%; width: 54.5%;
+        }
+        .row[dir="rtl"].parenthetical textarea, .row[dir="rtl"].parenthetical .replicator {
+            text-align: right; margin-right: 28.3%; margin-left: 33.8%; width: 37.9%;
+            text-indent: -1.4%;
+        }
+        .row[dir="rtl"].transition textarea, .row[dir="rtl"].transition .replicator {
+            text-align: left; margin-right: 62.3%; margin-left: 3.8%; width: 33.9%;
+        }
 
         /* -------------------- TITLE PAGE MODAL -------------------- */
         #title-page-modal { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); z-index: 300; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
@@ -317,19 +370,6 @@
 
         #title-page-print { display: none; }
 
-        @media print {
-            @page:first { margin-top: 2.4cm !important; margin-right: 1.27cm !important; margin-bottom: 2.4cm !important; margin-left: 1.27cm !important; size: A4 !important; }
-            #title-page-print { display: block !important; page-break-after: always !important; page-break-inside: avoid !important; break-after: page !important; break-inside: avoid !important; width: 100% !important; height: auto !important; min-height: 0 !important; max-height: 100% !important; padding: 0 !important; margin: 0 !important; box-sizing: border-box !important; position: relative !important; overflow: hidden !important; }
-            #title-page-print .title-page-content-wrapper { width: 6.5in !important; max-width: 6.5in !important; margin: 0 auto !important; padding: 3.5in 0 1in 0 !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; align-items: center !important; box-sizing: border-box !important; font-family: var(--font) !important; color: black !important; }
-            #title-page-print .title-page-title { text-align: center; font-size: 12pt; font-weight: normal; margin: 0 0 0.4in 0; line-height: 1.05; width: 100%; font-family: var(--font); color: black !important; }
-            #title-page-print .title-page-written-by { text-align: center; font-size: 12pt; margin: 0 0 0.2in 0; line-height: 1.05; width: 100%; font-family: var(--font); color: black !important; }
-            #title-page-print .title-page-writer { text-align: center; font-size: 12pt; font-weight: normal; margin: 0 0 0.4in 0; line-height: 1.05; width: 100%; font-family: var(--font); color: black !important; }
-            #title-page-print .title-page-custom { text-align: center; font-size: 12pt; margin: 0.2in 0; line-height: 1.05; width: 100%; white-space: pre-line; font-family: var(--font); color: black !important; }
-            #title-page-print + #page { margin-top: 0 !important; padding-top: 0 !important; page-break-before: auto !important; }
-            #title-page-print:empty { display: none !important; }
-            #title-page-print + #page > .row:first-child, #title-page-print + #page > .container-box:first-child > .row:first-child { margin-top: 0 !important; padding-top: 0 !important; }
-            #title-page-print + #page > .row.scene:first-child { margin-top: 0 !important; }
-        }
 
         /* -------------------- SCENE MAP -------------------- */
         #scene-map {
@@ -354,40 +394,13 @@
         .scene-item-content { flex: 1; }
         .scene-item.dragging { opacity: 0.5; }
 
-        /* =================================================================
-           DRAG VISUAL STYLES — CLEANED UP
-           -----------------------------------------------------------------
-           REMOVED:  #page.drag-over { outline: 2px dashed ... }
-             Reason: The outline was applied to the entire #page element.
-             Because it was added inside a requestAnimationFrame callback,
-             there was a race condition: the drop/dragend cleanup ran first
-             (removing .drag-over), then the pending rAF fired and re-added
-             it, leaving a permanent dashed border around the whole script.
-             It was also visually noisy and not necessary.
-
-           REMOVED:  .row.drag-target { border-top: 2px solid ... }
-             Reason: Same race condition — a pending rAF could re-add
-             .drag-target to a row after cleanup, leaving a stray blue
-             horizontal line. The drop-indicator line below serves the same
-             purpose more cleanly and is easier to guarantee is hidden.
-
-           KEPT:     .drop-indicator
-             A single fixed-position bar that shows where the drop will land.
-             It is hidden by default (opacity: 0, pointer-events: none) and
-             is only made visible via JS. All cleanup paths cancel the
-             pending rAF before touching DOM classes, ensuring no stale
-             rAF can re-show it.
-           ================================================================= */
-
-        /* Single, clean drop indicator line — the ONLY drag visual on the page */
+        /* Drop indicator — the only drag visual; shown/hidden via JS opacity, never via class */
         .drop-indicator {
             position: fixed;
             height: 3px;
             background: var(--accent);
             z-index: 10000;
             pointer-events: none;
-            /* Hidden by default — JS shows it by setting opacity to 1 directly,
-               not via a class toggle, so there is no class left to "linger". */
             opacity: 0;
             border-radius: 2px;
             box-shadow: 0 0 8px var(--accent), 0 0 4px rgba(74, 144, 226, 0.4);
@@ -417,53 +430,183 @@
         .row.search-match { background: rgba(255, 255, 0, 0.15); border-left: 3px solid rgba(255, 255, 0, 0.6); }
         body.light-mode .row.search-match { background: rgba(255, 255, 0, 0.25); border-left-color: rgba(255, 200, 0, 0.8); }
 
-        /* -------------------- PRINT / PDF -------------------- */
+        /* -------------------- PRINT / PDF --------------------
+           @page sets all margins; #page div must have padding:0 to avoid doubling.
+           Element indents are exact inch values from the A4 screenplay spec.
+           @top-right counter not supported in Safari — degrades silently (no numbers).
+        */
         @media print {
-            @page { size: A4 !important; margin-top: 2.4cm !important; margin-right: 1.27cm !important; margin-bottom: 2.4cm !important; margin-left: 1.27cm !important; }
-            html { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            /* @page margins: 0.945in top/bottom (2.4cm), 0.5in left/right */
+            @page {
+                size: A4;
+                margin-top:    0.945in;
+                margin-right:  0.5in;
+                margin-bottom: 0.945in;
+                margin-left:   0.5in;
+            }
+            /* Page number: "N." right-aligned in header, suppressed on first page */
+            @page { @top-right { content: counter(page) "."; font-family: Courier, "Courier New", monospace; font-size: 12pt; font-weight: normal; color: black; vertical-align: bottom; padding-bottom: 6pt; } }
+            @page :first { @top-right { content: none; } }
+
+            /* ---- Title page block ---- */
+            #title-page-print { display: block !important; page-break-after: always !important; page-break-inside: avoid !important; break-after: page !important; break-inside: avoid !important; width: 100% !important; height: auto !important; min-height: 0 !important; max-height: 100% !important; padding: 0 !important; margin: 0 !important; box-sizing: border-box !important; position: relative !important; overflow: hidden !important; }
+            #title-page-print .title-page-content-wrapper { width: 6.5in !important; max-width: 6.5in !important; margin: 0 auto !important; padding: 3.5in 0 1in 0 !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; align-items: center !important; box-sizing: border-box !important; font-family: var(--font) !important; color: black !important; }
+            #title-page-print .title-page-title { text-align: center; font-size: 12pt; font-weight: normal; margin: 0 0 0.4in 0; line-height: 1.05; width: 100%; font-family: var(--font); color: black !important; }
+            #title-page-print .title-page-written-by { text-align: center; font-size: 12pt; margin: 0 0 0.2in 0; line-height: 1.05; width: 100%; font-family: var(--font); color: black !important; }
+            #title-page-print .title-page-writer { text-align: center; font-size: 12pt; font-weight: normal; margin: 0 0 0.4in 0; line-height: 1.05; width: 100%; font-family: var(--font); color: black !important; }
+            #title-page-print .title-page-custom { text-align: center; font-size: 12pt; margin: 0.2in 0; line-height: 1.05; width: 100%; white-space: pre-line; font-family: var(--font); color: black !important; }
+            #title-page-print + #page { margin-top: 0 !important; padding-top: 0 !important; page-break-before: auto !important; }
+            #title-page-print:empty { display: none !important; }
+            #title-page-print + #page > .row:first-child, #title-page-print + #page > .container-box:first-child > .row:first-child { margin-top: 0 !important; padding-top: 0 !important; }
+            #title-page-print + #page > .row.scene:first-child { margin-top: 0 !important; }
+
+            /* ---- Hide UI chrome ---- */
             #floating-actions, .gutter, .container-header, #selection-bar, #scene-map, #page-buffer { display: none !important; }
+
+            /* ---- Container: collapse framing, only rows render ---- */
             .container-box { display: block !important; border: 0 !important; border-width: 0 !important; padding: 0 !important; margin: 0 !important; background: transparent !important; height: auto !important; min-height: 0 !important; max-height: none !important; line-height: 0 !important; font-size: 0 !important; vertical-align: baseline !important; box-sizing: border-box !important; position: static !important; }
             .container-header { display: none !important; margin: 0 !important; padding: 0 !important; height: 0 !important; min-height: 0 !important; max-height: 0 !important; line-height: 0 !important; font-size: 0 !important; overflow: hidden !important; visibility: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important; width: 0 !important; }
             .container-box > div:not(.row) { display: none !important; margin: 0 !important; padding: 0 !important; height: 0 !important; min-height: 0 !important; max-height: 0 !important; }
-            .container-box > .row { font-size: 13pt !important; line-height: normal !important; margin-left: 0 !important; margin-right: 0 !important; }
+            .container-box > .row { font-size: 12pt !important; line-height: normal !important; margin-left: 0 !important; margin-right: 0 !important; }
             #page > .container-box:first-child > .row:first-child { margin-top: 25pt !important; }
-            body, #workspace { background: white !important; height: auto !important; overflow: visible !important; display: block !important; margin: 0 !important; padding: 0 !important; }
-            #page { width: 210mm !important; max-width: 210mm !important; box-shadow: none !important; padding: 2.4cm 1.27cm 2.4cm 1.27cm !important; margin: 0 !important; height: auto !important; background: white !important; color: black !important; display: block !important; box-sizing: border-box !important; position: relative !important; font-family: Courier, "Courier New", monospace !important; font-size: 13pt !important; line-height: 1.1 !important; }
+
+            /* ---- Root layout ---- */
+            html { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body, #workspace {
+                background: white !important; height: auto !important;
+                overflow: visible !important; display: block !important;
+                margin: 0 !important; padding: 0 !important;
+                width: 100% !important; max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            /* ---- Page canvas — padding:0 because @page margins own all whitespace ---- */
+            #page {
+                width: 100% !important; max-width: 100% !important;
+                box-shadow: none !important;
+                padding: 0 !important;      /* @page handles all whitespace */
+                margin: 0 !important; height: auto !important;
+                background: white !important; color: black !important;
+                display: block !important; box-sizing: border-box !important;
+                position: relative !important;
+                font-family: 'Courier Final Draft', 'Courier Prime', Courier, "Courier New", monospace !important;
+                font-size: 12pt !important;
+                line-height: 1.025 !important;
+            }
             #page > * { max-width: 100% !important; box-sizing: border-box !important; }
+
+            /* ---- Input grid / replicator ---- */
             textarea { display: none !important; }
-            .input-grid { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; overflow: visible !important; }
-            .replicator { display: block !important; visibility: visible !important; color: black !important; white-space: pre-wrap !important; word-wrap: break-word !important; overflow-wrap: break-word !important; overflow: visible !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; line-height: 1.1 !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; font-family: Courier, "Courier New", monospace !important; font-size: 13pt !important; }
+            .input-grid { display: block !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; overflow: visible !important; }
+            .replicator {
+                display: block !important; visibility: visible !important;
+                color: black !important; background: transparent !important;
+                white-space: pre-wrap !important; word-wrap: break-word !important;
+                overflow-wrap: break-word !important; overflow: visible !important;
+                height: auto !important; min-height: 0 !important;
+                padding: 0 !important; margin: 0 !important; /* per-element margins below */
+                width: 100% !important; max-width: 100% !important;
+                box-sizing: border-box !important;
+                font-family: 'Courier Final Draft', 'Courier Prime', Courier, "Courier New", monospace !important;
+                font-size: 12pt !important;
+                text-decoration: none !important; /* reset; scene overrides below */
+            }
             .replicator strong { font-weight: bold !important; }
             .replicator em { font-style: italic !important; }
-            .row[dir="rtl"] { direction: rtl !important; unicode-bidi: embed !important; }
-            .row[dir="rtl"] .replicator { direction: rtl !important; unicode-bidi: embed !important; text-align: inherit !important; word-break: keep-all !important; overflow-wrap: normal !important; white-space: pre-wrap !important; font-variant-ligatures: normal !important; font-kerning: normal !important; }
-            .row[dir="rtl"] .replicator * { direction: rtl !important; unicode-bidi: embed !important; }
-            .row[dir="rtl"].scene .replicator { text-align: right !important; width: 100% !important; }
-            .row[dir="rtl"].action .replicator { text-align: right !important; width: 100% !important; }
-            .row[dir="rtl"].character .replicator { text-align: center !important; margin-right: 18% !important; margin-left: 18% !important; width: 64% !important; }
-            .row[dir="rtl"].dialogue .replicator { text-align: right !important; margin-right: 18% !important; margin-left: 18% !important; width: 64% !important; }
-            .row[dir="rtl"].parenthetical .replicator { text-align: right !important; margin-right: 28% !important; margin-left: 0 !important; width: 44% !important; }
-            .row.scene .replicator { width: 100% !important; }
-            .row.action .replicator { width: 100% !important; }
-            .row.character .replicator { margin-left: 18% !important; width: 64% !important; }
-            .row.dialogue .replicator { margin-left: 18% !important; width: 64% !important; }
-            .row.parenthetical .replicator { margin-left: 28% !important; width: 44% !important; }
-            .row.transition .replicator { width: 100% !important; }
-            .row.character .replicator, .row.parenthetical .replicator, .row.dialogue .replicator { line-height: 1.0 !important; }
-            .row.transition .replicator { line-height: 1.1 !important; margin: 0 !important; padding: 0 !important; }
-            .row { overflow: visible !important; height: auto !important; margin-bottom: 0 !important; padding: 0 !important; border: 0 !important; box-sizing: border-box !important; width: 100% !important; }
+
+            /* ---- Row base reset ---- */
+            .row {
+                overflow: visible !important; height: auto !important;
+                margin-bottom: 0 !important; padding: 0 !important;
+                border: 0 !important; box-sizing: border-box !important;
+                width: 100% !important;
+            }
             .container-box { overflow: visible !important; width: 100% !important; box-sizing: border-box !important; }
-            .row.scene, .row.action, .row.character, .row.parenthetical, .row.dialogue, .row.transition { margin-left: 0 !important; margin-right: 0 !important; margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; padding-left: 0 !important; padding-right: 0 !important; }
-            #page > .row:first-child, #page > .container-box:first-child > .row:first-child { margin-top: 25pt !important; }
-            .row.scene { margin-top: 25pt !important; page-break-after: auto !important; page-break-inside: avoid !important; }
-            .row.action { margin-top: 12pt !important; page-break-after: auto !important; page-break-inside: avoid !important; orphans: 2 !important; widows: 2 !important; }
-            .row.character { margin-top: 12pt !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
-            .row.parenthetical, .row.dialogue { margin-top: 0 !important; }
-            .row.parenthetical { page-break-after: avoid !important; page-break-inside: avoid !important; }
-            .row.dialogue { page-break-after: auto !important; page-break-inside: avoid !important; orphans: 2 !important; widows: 2 !important; }
-            .row.transition { margin-top: 0 !important; margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; display: block !important; clear: both !important; position: relative !important; page-break-after: auto !important; page-break-inside: avoid !important; }
-            .row.transition::before { content: "" !important; display: block !important; height: 12pt !important; width: 100% !important; margin: 0 !important; padding: 0 !important; line-height: 0 !important; font-size: 0 !important; }
-            .container-box { page-break-inside: avoid !important; }
+
+            /* ---- Element indents (exact inches from A4 screenplay spec) ---- */
+
+            /* --- Row spacing --- */
+            .row.scene, .row.action, .row.character, .row.parenthetical, .row.dialogue, .row.transition {
+                margin-left: 0 !important; margin-right: 0 !important;
+                margin-bottom: 0 !important;
+                padding-top: 0 !important; padding-bottom: 0 !important;
+                padding-left: 0 !important; padding-right: 0 !important;
+            }
+            #page > .row:first-child,
+            #page > .container-box:first-child > .row:first-child { margin-top: 25pt !important; }
+
+            .row.scene        { margin-top: 25pt  !important; page-break-after: auto !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+            .row.action       { margin-top: 12pt  !important; page-break-after: auto !important; page-break-inside: avoid !important; orphans: 2 !important; widows: 2 !important; }
+            .row.character    { margin-top: 13pt  !important; page-break-after: avoid !important; break-after: avoid !important; page-break-inside: avoid !important; }
+            .row.parenthetical{ margin-top: 0     !important; page-break-after: avoid !important; break-after: avoid !important; page-break-inside: avoid !important; }
+            .row.dialogue     { margin-top: 0     !important; page-break-after: auto !important; page-break-inside: avoid !important; orphans: 2 !important; widows: 2 !important; }
+            .row.transition   { margin-top: 12pt  !important; page-break-after: auto !important; page-break-inside: avoid !important; }
+            .container-box    { page-break-inside: avoid !important; }
+
+            /* --- SCENE HEADING --- */
+            .row.scene .replicator {
+                font-weight: normal !important;
+                text-transform: uppercase !important;
+                text-decoration: underline !important;
+                margin-left: 0.59in !important; margin-right: 0.39in !important;
+                width: auto !important; max-width: none !important;
+                line-height: 13pt !important;
+            }
+
+            /* --- ACTION --- */
+            .row.action .replicator {
+                margin-left: 0.59in !important; margin-right: 0.39in !important;
+                width: auto !important; max-width: none !important;
+                line-height: 12.3pt !important;
+                text-align: left !important;
+            }
+
+            /* --- CHARACTER --- */
+            .row.character .replicator {
+                text-transform: uppercase !important;
+                text-align: left !important;
+                margin-left: 3.0in !important; margin-right: 0.38in !important;
+                width: auto !important; max-width: none !important;
+                line-height: 12pt !important;
+            }
+
+            /* --- DIALOGUE --- */
+            .row.dialogue .replicator {
+                margin-left: 1.61in !important; margin-right: 1.70in !important;
+                width: auto !important; max-width: none !important;
+                line-height: 12.3pt !important;
+                text-align: left !important;
+            }
+
+            /* --- PARENTHETICAL --- */
+            .row.parenthetical .replicator {
+                margin-left: 2.06in !important; margin-right: 2.46in !important;
+                text-indent: 0.10in !important;
+                width: auto !important; max-width: none !important;
+                line-height: 12pt !important;
+                text-align: left !important;
+            }
+
+            /* --- TRANSITION --- */
+            .row.transition .replicator {
+                text-transform: uppercase !important;
+                text-align: right !important;
+                margin-left: 4.53in !important; margin-right: 0.28in !important;
+                width: auto !important; max-width: none !important;
+                line-height: 13pt !important;
+            }
+
+            /* ---- RTL print: swap left↔right margins ---- */
+            .row[dir="rtl"] { direction: rtl !important; unicode-bidi: embed !important; }
+            .row[dir="rtl"] .replicator { direction: rtl !important; unicode-bidi: embed !important; word-break: keep-all !important; overflow-wrap: normal !important; white-space: pre-wrap !important; }
+            .row[dir="rtl"] .replicator * { direction: rtl !important; unicode-bidi: embed !important; }
+
+            .row[dir="rtl"].scene .replicator      { text-align: right !important; margin-right: 0.59in !important; margin-left: 0.39in !important; }
+            .row[dir="rtl"].action .replicator     { text-align: right !important; margin-right: 0.59in !important; margin-left: 0.39in !important; }
+            .row[dir="rtl"].character .replicator  { text-align: right !important; margin-right: 3.0in !important; margin-left: 0.38in !important; }
+            .row[dir="rtl"].dialogue .replicator   { text-align: right !important; margin-right: 1.61in !important; margin-left: 1.70in !important; }
+            .row[dir="rtl"].parenthetical .replicator { text-align: right !important; margin-right: 2.06in !important; margin-left: 2.46in !important; text-indent: -0.10in !important; }
+            .row[dir="rtl"].transition .replicator { text-align: left !important; margin-right: 4.53in !important; margin-left: 0.28in !important; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -534,13 +677,18 @@
         constructor() {
             const savedData = localStorage.getItem('nvlastdraft_data');
             if (savedData) {
-                const parsed = JSON.parse(savedData);
-                if (Array.isArray(parsed)) {
-                    this.state = parsed;
-                    this.titlePage = this.loadTitlePageFromStorage();
-                } else {
-                    this.state = parsed.state || [this.createBlock('scene', 'INT. START - DAY')];
-                    this.titlePage = parsed.titlePage || this.getDefaultTitlePage();
+                try {
+                    const parsed = JSON.parse(savedData);
+                    if (Array.isArray(parsed)) {
+                        this.state = parsed;
+                        this.titlePage = this.loadTitlePageFromStorage();
+                    } else {
+                        this.state = parsed.state || [this.createBlock('scene', 'INT. START - DAY')];
+                        this.titlePage = parsed.titlePage || this.getDefaultTitlePage();
+                    }
+                } catch (e) {
+                    this.state = [this.createBlock('scene', 'INT. START - DAY')];
+                    this.titlePage = this.getDefaultTitlePage();
                 }
             } else {
                 this.state = [this.createBlock('scene', 'INT. START - DAY')];
@@ -556,7 +704,7 @@
             this.multiSelections = [];
             this.scenes = [];
 
-            // Drag state — UUID only, never a raw array index
+            // Drag — stores stable block UUID, not a raw array index
             this.draggedSceneBlockId = null;
             this.dropOccurred = false;
 
@@ -592,10 +740,10 @@
         }
 
         createBlock(type, text = '') {
-            return { id: Math.random().toString(36).substr(2, 9), isContainer: false, type, versions: [text], active: 0 };
+            return { id: Math.random().toString(36).substring(2, 11), isContainer: false, type, versions: [text], active: 0 };
         }
         createContainer(blocks) {
-            return { id: Math.random().toString(36).substr(2, 9), isContainer: true, versions: [blocks], active: 0 };
+            return { id: Math.random().toString(36).substring(2, 11), isContainer: true, versions: [blocks], active: 0 };
         }
 
         render(useBuffer = false) {
@@ -622,6 +770,8 @@
                 this.pageBuffer.style.display = 'none';
             } else {
                 const fragment = buildFragment();
+                // Disconnect any lingering MutationObservers before clearing the DOM
+                this.page.querySelectorAll('.type-select-menu').forEach(m => { if (m._obs) { m._obs.disconnect(); m._obs = null; } });
                 if (this.page.replaceChildren) {
                     this.page.replaceChildren(fragment);
                 } else {
@@ -661,7 +811,7 @@
                 const selectButton = document.createElement('button');
                 selectButton.className = 'type-select-button';
                 selectButton.type = 'button';
-                selectButton.innerHTML = block.type.toUpperCase().substr(0,4) + '<svg class="type-select-arrow" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L3.5 3L6 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="square" stroke-linejoin="miter"/></svg>';
+                selectButton.innerHTML = block.type.toUpperCase().substring(0,4) + '<svg class="type-select-arrow" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L3.5 3L6 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="square" stroke-linejoin="miter"/></svg>';
                 const selectMenu = document.createElement('div');
                 selectMenu.className = 'type-select-menu';
 
@@ -669,7 +819,7 @@
                     const option = document.createElement('button');
                     option.className = 'type-select-option';
                     if (t === block.type) option.classList.add('active');
-                    option.textContent = t.toUpperCase().substr(0,4);
+                    option.textContent = t.toUpperCase().substring(0,4);
                     option.onclick = (e) => { e.stopPropagation(); e.preventDefault(); this.saveToHistory(); block.type = t; this.save(); this.render(); };
                     option.onmousedown = (e) => { e.stopPropagation(); e.preventDefault(); };
                     selectMenu.appendChild(option);
@@ -693,6 +843,7 @@
                     }
                 });
                 obs.observe(selectMenu, { attributes: true, attributeFilter: ['class'] });
+                selectMenu._obs = obs; // store so it can be disconnected if the row is ever reused
 
                 selectWrapper.appendChild(selectButton);
                 selectWrapper.appendChild(selectMenu);
@@ -1005,7 +1156,7 @@
         addContainerVer(idx) {
             const c = this.state[idx]; this.saveToHistory();
             const clone = JSON.parse(JSON.stringify(c.versions[c.active]));
-            clone.forEach(b => b.id = Math.random().toString(36).substr(2, 9));
+            clone.forEach(b => b.id = Math.random().toString(36).substring(2, 11));
             c.versions.push(clone); c.active = c.versions.length - 1;
             this.save(); this.render(); this.saveToHistory(true);
         }
@@ -1078,18 +1229,23 @@
                 let t = this.titlePage.title.trim().replace(/^["']|["']$/g, '').replace(/[<>:"/\\|?*]/g, '').substring(0, 100);
                 if (t.length > 0) fileName = t + '.json';
             }
+            const url = URL.createObjectURL(new Blob([JSON.stringify({ state: this.state, titlePage: this.titlePage }, null, 2)], { type: 'application/json' }));
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify({ state: this.state, titlePage: this.titlePage }, null, 2)], { type: 'application/json' }));
-            a.download = fileName; a.click();
+            a.href = url; a.download = fileName; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
         }
 
         loadJSON(inp) {
             const r = new FileReader();
             r.onload = e => {
-                const loaded = JSON.parse(e.target.result);
-                if (Array.isArray(loaded)) this.state = loaded;
-                else { this.state = loaded.state || []; this.titlePage = loaded.titlePage || this.getDefaultTitlePage(); }
-                this.save(); this.render();
+                try {
+                    const loaded = JSON.parse(e.target.result);
+                    if (Array.isArray(loaded)) this.state = loaded;
+                    else { this.state = loaded.state || []; this.titlePage = loaded.titlePage || this.getDefaultTitlePage(); }
+                    this.save(); this.render();
+                } catch (err) {
+                    alert('Could not read file: invalid JSON.');
+                }
             };
             if (inp.files[0]) r.readAsText(inp.files[0]);
         }
@@ -1125,7 +1281,7 @@
                 else if (name.endsWith('.docx')) await this.loadDOCX(file);
                 else if (name.endsWith('.pages')) await this.loadPages(file);
                 else alert('Unsupported file type. Please use .json, .pdf, .docx, or .pages files.');
-            } catch (err) { console.error('Error loading file:', err); alert('Error loading file: ' + err.message); }
+            } catch (err) { alert('Error loading file: ' + err.message); }
         }
 
         async loadPDF(file) {
@@ -1278,6 +1434,10 @@
                 if (ta?.value.trim()) rep.innerHTML = this.parseMarkdown(ta.value);
             });
             window.print();
+            // Restore sentinel so auto-height sync works correctly after printing
+            pageElement.querySelectorAll('.replicator').forEach(rep => {
+                if (!rep.innerHTML.endsWith('\u200B')) rep.innerHTML += '\u200B';
+            });
             setTimeout(() => { document.title = originalTitle; }, 1000);
             if (titlePagePrint) titlePagePrint.style.display = 'none';
         }
@@ -1298,11 +1458,8 @@
             if (btn) { const light = document.body.classList.contains('light-mode'); btn.textContent = light ? '◐' : '◑'; btn.title = light ? 'Switch to Dark Mode' : 'Switch to Light Mode'; }
         }
 
-        // ====================================================================
-        // SCENE MAP — built entirely from this.state, never from the DOM.
-        // Each entry stores blockId (stable UUID) for all state operations,
-        // and a DOM id ("row-N") only for scroll/jump (valid right after render).
-        // ====================================================================
+        // Scene map is built from state, not the DOM.
+        // blockId is the stable UUID; DOM id ("row-N") is only used for scroll/jump.
         buildSceneMap() {
             this.scenes = [];
             for (let i = 0; i < this.state.length; i++) {
@@ -1603,11 +1760,6 @@
             }, false);
         }
 
-        // ------------------------------------------------------------------
-        // collectSceneGroup(startIndex)
-        // Returns scene block at startIndex plus all following non-scene blocks
-        // (and containers) until the next top-level scene or end of state.
-        // ------------------------------------------------------------------
         collectSceneGroup(startIndex) {
             const group = [this.state[startIndex]];
             for (let i = startIndex + 1; i < this.state.length; i++) {
@@ -1618,16 +1770,9 @@
             return group;
         }
 
-        // ------------------------------------------------------------------
-        // moveScene(fromBlockId, toBlockId, insertBefore)
-        //
-        // All parameters are stable UUIDs. Array indices are resolved here,
-        // at the moment of the call, so they are always current regardless of
-        // any edits or undo/redo that happened since drag-start.
-        // ------------------------------------------------------------------
         moveScene(fromBlockId, toBlockId, insertBefore) {
             const fromIndex = this.state.findIndex(b => !b.isContainer && b.id === fromBlockId);
-            if (fromIndex === -1 || this.state[fromIndex].type !== 'scene') { console.warn('[moveScene] Source scene not found:', fromBlockId); return; }
+            if (fromIndex === -1 || this.state[fromIndex].type !== 'scene') return;
 
             const group = this.collectSceneGroup(fromIndex);
 
@@ -1654,7 +1799,7 @@
             this.save();
             this.render();
 
-            // Scroll to the moved scene using its UUID (not a stale index)
+            // Scroll to moved scene by UUID
             setTimeout(() => {
                 const newIndex = this.state.findIndex(b => !b.isContainer && b.id === fromBlockId);
                 if (newIndex >= 0) {
@@ -1668,7 +1813,7 @@
             }, 100);
         }
 
-        // --- TITLE PAGE ---
+        // --- Title Page ---
         openTitlePage() {
             const modal = document.getElementById('title-page-modal');
             if (!modal) return;
