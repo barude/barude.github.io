@@ -107,7 +107,10 @@
             display: block; position: relative;
             border-left: 3px solid transparent;
             margin: 0; padding: 0;
-            max-width: 100%; overflow: hidden; /* contain long unbroken strings */
+            max-width: 100%;
+            /* NOTE: overflow must NOT be hidden here — the gutter is absolutely
+               positioned at left:-250px (outside this box) and would be clipped.
+               Long-string overflow is already contained by .input-grid below. */
         }
         .row.multi-selected { background: var(--select-highlight); border-left-color: var(--accent); }
 
@@ -204,8 +207,10 @@
         .type-select-option:hover { background: rgba(40, 40, 40, 0.95); color: #ddd; }
         .type-select-option.active { background: rgba(50, 50, 50, 0.95); color: var(--accent); font-weight: 500; }
 
+        /* Separator between type selector and version controls */
         .gutter-container::after { content: ''; width: 1px; height: 18px; background: rgba(74, 144, 226, 0.15); margin: 0; }
 
+        /* -------------------- VERSION CONTROLS -------------------- */
         .version-controls { display: flex; align-items: center; gap: 10px; background: transparent; border: none; padding: 6px 10px; position: relative; }
         .version-controls button { background: transparent; border: none; color: #bbb; font-size: 11px; width: 16px; height: 16px; padding: 0; margin: 0; cursor: pointer; border-radius: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; line-height: 1; font-family: var(--font); position: relative; }
         .version-controls button:hover { color: #ccc; }
@@ -237,10 +242,13 @@
         body.light-mode .type-select-option:hover { background: rgba(245, 243, 239, 0.95); color: #4a4844; }
         body.light-mode .type-select-option.active { background: rgba(240, 238, 234, 0.95); color: var(--accent); }
 
-        /* -------------------- INPUT GRID -------------------- */
+        /* -------------------- INPUT GRID --------------------
+           min-width:0 prevents grid items from overflowing their column.
+           overflow:hidden here (not on .row) contains long unbroken strings
+           without clipping the absolutely-positioned gutter. */
         .input-grid {
             display: grid; align-items: start;
-            min-width: 0; overflow: hidden; width: 100%; /* min-width:0 prevents grid items from overflowing */
+            min-width: 0; overflow: hidden; width: 100%;
         }
         .replicator, textarea {
             grid-area: 1 / 1 / 2 / 2; font-family: var(--font); font-size: 12pt;
@@ -370,7 +378,6 @@
 
         #title-page-print { display: none; }
 
-
         /* -------------------- SCENE MAP -------------------- */
         #scene-map {
             position: fixed; left: 0; top: 0; width: 240px; height: 100vh;
@@ -394,15 +401,10 @@
         .scene-item-content { flex: 1; }
         .scene-item.dragging { opacity: 0.5; }
 
-        /* Drop indicator — the only drag visual; shown/hidden via JS opacity, never via class */
+        /* Drop indicator — the only drag visual; shown/hidden via JS opacity */
         .drop-indicator {
-            position: fixed;
-            height: 3px;
-            background: var(--accent);
-            z-index: 10000;
-            pointer-events: none;
-            opacity: 0;
-            border-radius: 2px;
+            position: fixed; height: 3px; background: var(--accent);
+            z-index: 10000; pointer-events: none; opacity: 0; border-radius: 2px;
             box-shadow: 0 0 8px var(--accent), 0 0 4px rgba(74, 144, 226, 0.4);
             transition: opacity 0.1s ease;
         }
@@ -433,10 +435,10 @@
         /* -------------------- PRINT / PDF --------------------
            @page sets all margins; #page div must have padding:0 to avoid doubling.
            Element indents are exact inch values from the A4 screenplay spec.
-           @top-right counter not supported in Safari — degrades silently (no numbers).
+           @top-right counter not supported in Safari — degrades silently.
         */
         @media print {
-            /* @page margins: 0.945in top/bottom (2.4cm), 0.5in left/right */
+            /* Margins: 0.945in top/bottom (2.4cm), 0.5in left/right */
             @page {
                 size: A4;
                 margin-top:    0.945in;
@@ -484,7 +486,7 @@
             #page {
                 width: 100% !important; max-width: 100% !important;
                 box-shadow: none !important;
-                padding: 0 !important;      /* @page handles all whitespace */
+                padding: 0 !important;
                 margin: 0 !important; height: auto !important;
                 background: white !important; color: black !important;
                 display: block !important; box-sizing: border-box !important;
@@ -504,12 +506,12 @@
                 white-space: pre-wrap !important; word-wrap: break-word !important;
                 overflow-wrap: break-word !important; overflow: visible !important;
                 height: auto !important; min-height: 0 !important;
-                padding: 0 !important; margin: 0 !important; /* per-element margins below */
+                padding: 0 !important; margin: 0 !important;
                 width: 100% !important; max-width: 100% !important;
                 box-sizing: border-box !important;
                 font-family: 'Courier Final Draft', 'Courier Prime', Courier, "Courier New", monospace !important;
                 font-size: 12pt !important;
-                text-decoration: none !important; /* reset; scene overrides below */
+                text-decoration: none !important;
             }
             .replicator strong { font-weight: bold !important; }
             .replicator em { font-style: italic !important; }
@@ -545,8 +547,7 @@
 
             /* --- SCENE HEADING --- */
             .row.scene .replicator {
-                font-weight: normal !important;
-                text-transform: uppercase !important;
+                font-weight: normal !important; text-transform: uppercase !important;
                 text-decoration: underline !important;
                 margin-left: 0.59in !important; margin-right: 0.39in !important;
                 width: auto !important; max-width: none !important;
@@ -557,14 +558,12 @@
             .row.action .replicator {
                 margin-left: 0.59in !important; margin-right: 0.39in !important;
                 width: auto !important; max-width: none !important;
-                line-height: 12.3pt !important;
-                text-align: left !important;
+                line-height: 12.3pt !important; text-align: left !important;
             }
 
             /* --- CHARACTER --- */
             .row.character .replicator {
-                text-transform: uppercase !important;
-                text-align: left !important;
+                text-transform: uppercase !important; text-align: left !important;
                 margin-left: 3.0in !important; margin-right: 0.38in !important;
                 width: auto !important; max-width: none !important;
                 line-height: 12pt !important;
@@ -574,8 +573,7 @@
             .row.dialogue .replicator {
                 margin-left: 1.61in !important; margin-right: 1.70in !important;
                 width: auto !important; max-width: none !important;
-                line-height: 12.3pt !important;
-                text-align: left !important;
+                line-height: 12.3pt !important; text-align: left !important;
             }
 
             /* --- PARENTHETICAL --- */
@@ -583,14 +581,12 @@
                 margin-left: 2.06in !important; margin-right: 2.46in !important;
                 text-indent: 0.10in !important;
                 width: auto !important; max-width: none !important;
-                line-height: 12pt !important;
-                text-align: left !important;
+                line-height: 12pt !important; text-align: left !important;
             }
 
             /* --- TRANSITION --- */
             .row.transition .replicator {
-                text-transform: uppercase !important;
-                text-align: right !important;
+                text-transform: uppercase !important; text-align: right !important;
                 margin-left: 4.53in !important; margin-right: 0.28in !important;
                 width: auto !important; max-width: none !important;
                 line-height: 13pt !important;
@@ -806,6 +802,7 @@
                 const gutterContainer = document.createElement('div');
                 gutterContainer.className = 'gutter-container';
 
+                // Type selector
                 const selectWrapper = document.createElement('div');
                 selectWrapper.className = 'type-select-wrapper';
                 const selectButton = document.createElement('button');
@@ -843,20 +840,33 @@
                     }
                 });
                 obs.observe(selectMenu, { attributes: true, attributeFilter: ['class'] });
-                selectMenu._obs = obs; // store so it can be disconnected if the row is ever reused
+                selectMenu._obs = obs; // stored for cleanup on re-render
 
                 selectWrapper.appendChild(selectButton);
                 selectWrapper.appendChild(selectMenu);
                 gutterContainer.appendChild(selectWrapper);
 
+                // Version controls — ‹ N › +
                 const versionControls = document.createElement('div');
                 versionControls.className = 'version-controls';
-                const prevBtn = document.createElement('button'); prevBtn.textContent = '‹'; prevBtn.onclick = () => app.blockVer(block.id, -1); prevBtn.title = 'Previous version';
-                const versionNum = document.createElement('span'); versionNum.className = 'version-number'; versionNum.textContent = block.active + 1;
-                const nextBtn = document.createElement('button'); nextBtn.textContent = '›'; nextBtn.onclick = () => app.blockVer(block.id, 1); nextBtn.title = 'Next version';
-                const addBtn = document.createElement('button'); addBtn.className = 'add-version-btn'; addBtn.textContent = '+'; addBtn.onclick = () => app.addBlockVer(block.id); addBtn.title = 'New version';
-                versionControls.appendChild(prevBtn); versionControls.appendChild(versionNum); versionControls.appendChild(nextBtn); versionControls.appendChild(addBtn);
+                const prevBtn = document.createElement('button');
+                prevBtn.textContent = '‹'; prevBtn.title = 'Previous version';
+                prevBtn.onclick = () => app.blockVer(block.id, -1);
+                const versionNum = document.createElement('span');
+                versionNum.className = 'version-number';
+                versionNum.textContent = block.active + 1;
+                const nextBtn = document.createElement('button');
+                nextBtn.textContent = '›'; nextBtn.title = 'Next version';
+                nextBtn.onclick = () => app.blockVer(block.id, 1);
+                const addBtn = document.createElement('button');
+                addBtn.className = 'add-version-btn'; addBtn.textContent = '+'; addBtn.title = 'New version';
+                addBtn.onclick = () => app.addBlockVer(block.id);
+                versionControls.appendChild(prevBtn);
+                versionControls.appendChild(versionNum);
+                versionControls.appendChild(nextBtn);
+                versionControls.appendChild(addBtn);
                 gutterContainer.appendChild(versionControls);
+
                 gutter.appendChild(gutterContainer);
                 row.appendChild(gutter);
             }
@@ -928,11 +938,20 @@
             box.className = 'container-box';
             const header = document.createElement('div'); header.className = 'container-header';
             const controls = document.createElement('div'); controls.className = 'container-version-controls';
-            const prevBtn = document.createElement('button'); prevBtn.className = 'container-version-btn container-version-nav'; prevBtn.textContent = '‹'; prevBtn.onclick = () => app.containerVer(idx, -1); prevBtn.title = 'Previous version';
-            const versionNum = document.createElement('span'); versionNum.className = 'container-version-number'; versionNum.textContent = `v${container.active + 1}`;
-            const nextBtn = document.createElement('button'); nextBtn.className = 'container-version-btn container-version-nav'; nextBtn.textContent = '›'; nextBtn.onclick = () => app.containerVer(idx, 1); nextBtn.title = 'Next version';
-            const addBtn = document.createElement('button'); addBtn.className = 'container-version-btn container-add-btn'; addBtn.textContent = '+'; addBtn.onclick = () => app.addContainerVer(idx); addBtn.title = 'New version';
-            const ungroupBtn = document.createElement('button'); ungroupBtn.className = 'container-version-btn container-ungroup-btn'; ungroupBtn.textContent = 'Ungroup'; ungroupBtn.onclick = () => app.ungroup(idx);
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'container-version-btn container-version-nav'; prevBtn.textContent = '‹'; prevBtn.title = 'Previous version';
+            prevBtn.onclick = () => app.containerVer(idx, -1);
+            const versionNum = document.createElement('span');
+            versionNum.className = 'container-version-number'; versionNum.textContent = `v${container.active + 1}`;
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'container-version-btn container-version-nav'; nextBtn.textContent = '›'; nextBtn.title = 'Next version';
+            nextBtn.onclick = () => app.containerVer(idx, 1);
+            const addBtn = document.createElement('button');
+            addBtn.className = 'container-version-btn container-add-btn'; addBtn.textContent = '+'; addBtn.title = 'New version';
+            addBtn.onclick = () => app.addContainerVer(idx);
+            const ungroupBtn = document.createElement('button');
+            ungroupBtn.className = 'container-version-btn container-ungroup-btn'; ungroupBtn.textContent = 'Ungroup';
+            ungroupBtn.onclick = () => app.ungroup(idx);
             controls.appendChild(prevBtn); controls.appendChild(versionNum); controls.appendChild(nextBtn); controls.appendChild(addBtn); controls.appendChild(ungroupBtn);
             header.appendChild(controls); box.appendChild(header);
             const activeBlocks = container.versions[container.active];
@@ -1116,6 +1135,9 @@
             }
         }
 
+        // ------------------------------------------------------------------
+        // Version methods — per-block
+        // ------------------------------------------------------------------
         findBlockById(id) {
             for (let i = 0; i < this.state.length; i++) {
                 if (this.state[i].id === id) return { parent: this.state, idx: i, item: this.state[i] };
@@ -1145,8 +1167,12 @@
             res.item.active = res.item.versions.length - 1; this.save(); this.render();
         }
 
+        // ------------------------------------------------------------------
+        // Version methods — containers
+        // ------------------------------------------------------------------
         containerVer(idx, dir) {
-            const c = this.state[idx]; this.saveToHistory();
+            const c = this.state[idx]; if (!c) return;
+            this.saveToHistory();
             let n = c.active + dir;
             if (n < 0) n = c.versions.length - 1;
             if (n >= c.versions.length) n = 0;
@@ -1154,7 +1180,8 @@
         }
 
         addContainerVer(idx) {
-            const c = this.state[idx]; this.saveToHistory();
+            const c = this.state[idx]; if (!c) return;
+            this.saveToHistory();
             const clone = JSON.parse(JSON.stringify(c.versions[c.active]));
             clone.forEach(b => b.id = Math.random().toString(36).substring(2, 11));
             c.versions.push(clone); c.active = c.versions.length - 1;
@@ -1492,8 +1519,7 @@
             filtered.forEach(scene => {
                 const item = document.createElement('div');
                 item.className = 'scene-item';
-                // Store stable blockId — the drop handler reads this, not a numeric index
-                item.dataset.sceneBlockId = scene.blockId;
+                item.dataset.sceneBlockId = scene.blockId; // stable UUID for drag/drop
 
                 const handle = document.createElement('div');
                 handle.className = 'scene-drag-handle';
@@ -1501,7 +1527,6 @@
                 handle.draggable = true;
                 handle.contentEditable = false;
 
-                // dragstart: record stable blockId
                 handle.addEventListener('dragstart', (e) => {
                     e.dataTransfer.effectAllowed = 'move';
                     e.dataTransfer.setData('text/plain', scene.blockId);
@@ -1512,9 +1537,6 @@
 
                 handle.addEventListener('dragend', () => {
                     item.classList.remove('dragging');
-                    // Cancel any pending rAF FIRST — this is the critical fix:
-                    // without this, a stale rAF fires after cleanup and re-shows
-                    // the drop indicator or re-adds drag classes.
                     if (this.dragOverFrame) {
                         cancelAnimationFrame(this.dragOverFrame);
                         this.dragOverFrame = null;
@@ -1581,22 +1603,14 @@
         }
 
         // ====================================================================
-        // DRAG & DROP — Visual cleanup helper
-        //
-        // _clearDragVisuals() is the single place that removes ALL drag-related
-        // visual state. It is called from BOTH the drop handler AND dragend,
-        // always AFTER cancelAnimationFrame so no pending rAF can re-add them.
+        // DRAG & DROP
+        // _clearDragVisuals() is the single place that removes all drag-related
+        // visual state. Called from both the drop handler and dragend, always
+        // AFTER cancelAnimationFrame so no pending rAF can re-add them.
         // ====================================================================
         _clearDragVisuals() {
-            // Hide the drop indicator by setting opacity directly
-            // (avoids class-toggle race conditions)
             const di = document.getElementById('drop-indicator');
             if (di) di.style.opacity = '0';
-
-            // NOTE: We no longer toggle .drag-over on #page (removed from CSS)
-            // and we no longer toggle .drag-target on rows (removed from CSS).
-            // These two lines are kept as safety no-ops in case of any edge case,
-            // but they have no visible effect since those CSS rules no longer exist.
             this.page.classList.remove('drag-over');
             document.querySelectorAll('.row.drag-target').forEach(r => r.classList.remove('drag-target'));
         }
@@ -1606,7 +1620,6 @@
             const sceneMap = document.getElementById('scene-map');
             const sceneList = document.getElementById('scene-list');
 
-            // Create drop indicator — a single thin bar, hidden by default
             const dropIndicator = document.createElement('div');
             dropIndicator.className = 'drop-indicator';
             dropIndicator.id = 'drop-indicator';
@@ -1616,25 +1629,18 @@
             this.lastDragOverTime = 0;
             this.dragOverFrame = null;
 
-            // ------------------------------------------------------------------
-            // dragover: update drop indicator position only — no class changes
-            // on #page or .row elements (those were the source of lingering CSS).
-            // ------------------------------------------------------------------
             const handleDragOver = (e) => {
                 if (!this.draggedSceneBlockId) return;
                 e.preventDefault();
                 e.stopPropagation();
                 e.dataTransfer.dropEffect = 'move';
 
-                // Throttle to ~60 fps
                 const now = Date.now();
                 if (now - this.lastDragOverTime < 16 && this.dragOverFrame) return;
-
-                // Cancel previous frame before scheduling a new one
                 if (this.dragOverFrame) cancelAnimationFrame(this.dragOverFrame);
 
                 this.dragOverFrame = requestAnimationFrame(() => {
-                    this.dragOverFrame = null; // Mark as consumed
+                    this.dragOverFrame = null;
                     this.lastDragOverTime = Date.now();
 
                     const overSceneMap = sceneMap && sceneMap.contains(e.target);
@@ -1654,7 +1660,6 @@
                         const smr = sceneMap.getBoundingClientRect();
                         dropX = smr.left; dropWidth = smr.width;
                     } else {
-                        // Find nearest scene heading row to snap indicator to boundary
                         const sceneRows = Array.from(this.page.querySelectorAll('.row.scene'));
                         let closestRow = null, minDist = Infinity;
                         for (const row of sceneRows) {
@@ -1669,7 +1674,6 @@
                         dropX = pr.left; dropWidth = pr.width;
                     }
 
-                    // Position and show the indicator
                     dropIndicator.style.top   = dropY + 'px';
                     dropIndicator.style.left  = dropX + 'px';
                     dropIndicator.style.width = dropWidth + 'px';
@@ -1677,30 +1681,22 @@
                 });
             };
 
-            // ------------------------------------------------------------------
-            // drop: cancel pending rAF FIRST, then clean up visuals, then move.
-            // Order matters: rAF cancel must precede _clearDragVisuals so the
-            // scheduled callback cannot re-show anything after cleanup.
-            // ------------------------------------------------------------------
             const handleDrop = (e) => {
                 if (!this.draggedSceneBlockId) return;
                 e.preventDefault();
                 e.stopPropagation();
 
-                // 1. Cancel any pending rAF immediately
                 if (this.dragOverFrame) {
                     cancelAnimationFrame(this.dragOverFrame);
                     this.dragOverFrame = null;
                 }
 
-                // 2. Remove all drag visuals
                 this._clearDragVisuals();
 
                 const fromBlockId = this.draggedSceneBlockId;
                 this.draggedSceneBlockId = null;
                 this.dropOccurred = true;
 
-                // 3. Determine target
                 let toBlockId = null, insertBefore = true;
                 const inSceneMap = sceneMap && sceneMap.contains(e.target);
 
@@ -1727,7 +1723,6 @@
                         const rowId = closestRow.id;
                         if (rowId.startsWith('row-')) {
                             const idx = parseInt(rowId.replace('row-', ''));
-                            // Verify block at idx is still a scene (state/DOM sync check)
                             if (idx >= 0 && idx < this.state.length && !this.state[idx].isContainer && this.state[idx].type === 'scene') {
                                 toBlockId    = this.state[idx].id;
                                 const r      = closestRow.getBoundingClientRect();
@@ -1742,7 +1737,6 @@
 
             const handleDragLeave = (e) => {
                 if (!e.relatedTarget || !page.contains(e.relatedTarget)) {
-                    // Cancel pending rAF before hiding indicator
                     if (this.dragOverFrame) {
                         cancelAnimationFrame(this.dragOverFrame);
                         this.dragOverFrame = null;
@@ -1770,6 +1764,8 @@
             return group;
         }
 
+        // All parameters are stable UUIDs — array indices are resolved at call time,
+        // so they are always current regardless of edits or undo/redo since drag-start.
         moveScene(fromBlockId, toBlockId, insertBefore) {
             const fromIndex = this.state.findIndex(b => !b.isContainer && b.id === fromBlockId);
             if (fromIndex === -1 || this.state[fromIndex].type !== 'scene') return;
@@ -1787,7 +1783,6 @@
                 else { targetIndex = toIndex + this.collectSceneGroup(toIndex).length; }
             }
 
-            // No-op: target is inside the group being moved
             if (targetIndex >= fromIndex && targetIndex <= fromIndex + group.length) return;
 
             this.saveToHistory();
@@ -1799,7 +1794,6 @@
             this.save();
             this.render();
 
-            // Scroll to moved scene by UUID
             setTimeout(() => {
                 const newIndex = this.state.findIndex(b => !b.isContainer && b.id === fromBlockId);
                 if (newIndex >= 0) {
