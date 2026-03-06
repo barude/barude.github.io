@@ -585,21 +585,47 @@
             .row[dir="rtl"].transition .replicator { text-align: left !important; margin-right: 4.53in !important; margin-left: 0.28in !important; }
         }
     </style>
-	    <!-- Offline deps (no CDN): keep this app fully runnable from file://
+	    <!-- Deps loader (reliable on both file:// and https:// hosting)
+	
 	         Required load order:
-	         1) vendor/pdf.min.js + vendor/pdf.worker.min.js (PDF import; workerSrc set in loadPDF())
-	         2) vendor/jszip.min.js (DOCX/Pages import helpers)
-	         3) vendor/pdfmake-rtl.js (PDF export engine; exposes window.pdfMake)
+	         1) PDF.js (pdf.min.js) + worker (set via window.__pdfjsWorkerSrc in loadPDF())
+	         2) JSZip (DOCX/Pages import helpers)
+	         3) pdfmake-rtl (PDF export engine; exposes window.pdfMake)
 	         4) fonts-base64.js (FONT_*_BASE64 constants used by initPdfMakeFonts())
-	         5) This file’s inline app script (defines Engine, exportPDF(), etc.) -->
-	    <script src="vendor/pdf.min.js"></script>
-	    <script src="vendor/jszip.min.js"></script>
-    <!-- PDF export engine: pdfmake-rtl is a drop-in pdfmake build with proper UAX#9 bidi + Arabic shaping -->
-    <script src="vendor/pdfmake-rtl.js"></script>
-    <!-- Base64 font constants: FONT_COURIERFINAL_REGULAR_BASE64, FONT_COURIERFINAL_BOLD_BASE64,
-         FONT_COURIERARABIC_REGULAR_BASE64, FONT_COURIERARABIC_BOLD_BASE64
-         Load fonts-base64.js here, OR paste the four const definitions directly below. -->
-    <script src="fonts-base64.js"></script>
+	         5) This file’s inline app script (defines Engine, exportPDF(), etc.)
+	
+	         Hosting note:
+	         - When opened from file:// we load local `vendor/*` so the app works fully offline.
+	         - When hosted over http(s) we default to CDN to avoid 404s if `vendor/` isn't deployed.
+	           You can force local vendor assets on a server by adding `?localVendor=1`. -->
+	    <script>
+	        (function () {
+	            const params = new URLSearchParams(location.search);
+	            const forceLocal = params.has('localVendor');
+	            const useLocal = forceLocal || location.protocol === 'file:';
+	
+	            const write = (src) => document.write(`<script src="${src}"><\\/script>`);
+	
+	            const pdfjsCdn = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+	            const pdfjsWorkerCdn = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+	            const jszipCdn = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+	            const pdfmakeRtlCdn = 'https://unpkg.com/pdfmake-rtl@2.1.2/build/pdfmake.js';
+	
+	            const pdfjsSrc = useLocal ? 'vendor/pdf.min.js' : pdfjsCdn;
+	            const jszipSrc = useLocal ? 'vendor/jszip.min.js' : jszipCdn;
+	            const pdfmakeSrc = useLocal ? 'vendor/pdfmake-rtl.js' : pdfmakeRtlCdn;
+	
+	            window.__pdfjsWorkerSrc = useLocal ? 'vendor/pdf.worker.min.js' : pdfjsWorkerCdn;
+	
+	            write(pdfjsSrc);
+	            write(jszipSrc);
+	            write(pdfmakeSrc);
+	        })();
+	    </script>
+	    <!-- Base64 font constants: FONT_COURIERFINAL_REGULAR_BASE64, FONT_COURIERFINAL_BOLD_BASE64,
+	         FONT_COURIERARABIC_REGULAR_BASE64, FONT_COURIERARABIC_BOLD_BASE64
+	         Load fonts-base64.js here, OR paste the four const definitions directly below. -->
+	    <script src="fonts-base64.js"></script>
 </head>
 <body>
 
@@ -620,11 +646,11 @@
     <button onclick="app.clearSelection()">Cancel</button>
 </div>
 
-<input type="file" id="load" style="display:none" accept=".json,.pdf,.pages,.docx" onchange="app.loadFile(this)">
+	<input type="file" id="load" style="display:none" accept=".json,.pdf,.pages,.docx" aria-label="Load project file" onchange="app.loadFile(this)">
 
 <div id="scene-map">
     <div class="scene-map-header">Scenes</div>
-    <input type="text" id="scene-search" placeholder="Search scenes..." />
+	    <input type="text" id="scene-search" placeholder="Search scenes..." aria-label="Search scenes" />
     <div id="scene-list"></div>
 </div>
 
@@ -934,20 +960,23 @@
 	                return fragment;
 	            };
 
-            if (useBuffer && this.pageBuffer) {
-                this.pageBuffer.innerHTML = '';
-                this.pageBuffer.appendChild(buildFragment());
-                this.page.style.display = 'none';
-                this.pageBuffer.style.display = '';
-                const workspace = document.getElementById('workspace');
-                workspace.insertBefore(this.pageBuffer, this.page);
-                workspace.insertBefore(this.page, this.pageBuffer.nextSibling);
-                [this.page, this.pageBuffer] = [this.pageBuffer, this.page];
-                this.page.id = 'page';
-                this.pageBuffer.id = 'page-buffer';
-                this.page.style.display = '';
-                this.pageBuffer.style.display = 'none';
-            } else {
+	            if (useBuffer && this.pageBuffer) {
+	                this.pageBuffer.innerHTML = '';
+	                this.pageBuffer.appendChild(buildFragment());
+	                this.page.style.display = 'none';
+	                this.pageBuffer.style.display = '';
+	                const workspace = document.getElementById('workspace');
+	                workspace.insertBefore(this.pageBuffer, this.page);
+	                workspace.insertBefore(this.page, this.pageBuffer.nextSibling);
+	                [this.page, this.pageBuffer] = [this.pageBuffer, this.page];
+	                this.page.id = 'page';
+	                this.pageBuffer.id = 'page-buffer';
+	                this.page.style.display = '';
+	                this.pageBuffer.style.display = 'none';
+	                // Important: clear the hidden buffer to avoid duplicate element IDs in the DOM
+	                // (screen readers, autofill, and validators treat hidden inputs as part of the same document).
+	                this.pageBuffer.innerHTML = '';
+	            } else {
                 const fragment = buildFragment();
                 this.page.querySelectorAll('.type-select-menu').forEach(m => { if (m._obs) { m._obs.disconnect(); m._obs = null; } });
                 if (this.page.replaceChildren) {
@@ -958,13 +987,16 @@
                 }
             }
 
-            this.updateSelectionUI();
-            if (!this.isUndoRedo) {
-                this.buildSceneMap();
-            } else {
-                this.sceneMapNeedsRebuild = true;
-                this.isUndoRedo = false;
-            }
+	            this.updateSelectionUI();
+	            const sm = document.getElementById('scene-map');
+	            const sceneMapOpen = !!(sm && sm.classList.contains('open'));
+	            if (!this.isUndoRedo || sceneMapOpen) {
+	                this.buildSceneMap();
+	                this.sceneMapNeedsRebuild = false;
+	            } else {
+	                this.sceneMapNeedsRebuild = true;
+	            }
+	            this.isUndoRedo = false;
 	        }
 
 	        renderBlock(block, path) {
@@ -1592,6 +1624,7 @@
 	                this.lastFocusedIndexInScope = null;
 	                this.save();
 	                this.render(true);
+	                this.buildSceneMap();
 	            }
 	        }
 	        redo() {
@@ -1605,6 +1638,7 @@
 	                this.lastFocusedIndexInScope = null;
 	                this.save();
 	                this.render(true);
+	                this.buildSceneMap();
 	            }
 	        }
 
@@ -1658,22 +1692,26 @@
             return blocks;
         }
 
-        async loadFile(inp) {
-            if (!inp.files || !inp.files[0]) return;
-            const file = inp.files[0], name = file.name.toLowerCase();
-            this.saveToHistory();
-            try {
-                if (name.endsWith('.json')) this.loadJSON(inp);
-                else if (name.endsWith('.pdf')) await this.loadPDF(file);
-                else if (name.endsWith('.docx')) await this.loadDOCX(file);
-                else if (name.endsWith('.pages')) await this.loadPages(file);
-                else alert('Unsupported file type. Please use .json, .pdf, .docx, or .pages files.');
-            } catch (err) { alert('Error loading file: ' + err.message); }
-        }
+	        async loadFile(inp) {
+	            if (!inp.files || !inp.files[0]) return;
+	            const file = inp.files[0], name = file.name.toLowerCase();
+	            this.saveToHistory();
+	            try {
+	                if (name.endsWith('.json')) this.loadJSON(inp);
+	                else if (name.endsWith('.pdf')) await this.loadPDF(file);
+	                else if (name.endsWith('.docx')) await this.loadDOCX(file);
+	                else if (name.endsWith('.pages')) await this.loadPages(file);
+	                else alert('Unsupported file type. Please use .json, .pdf, .docx, or .pages files.');
+	            } catch (err) { alert('Error loading file: ' + err.message); }
+	            finally {
+	                // Allow importing the same file twice in a row: reset the input so `change` fires again.
+	                inp.value = '';
+	            }
+	        }
 
 	        async loadPDF(file) {
 	            if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js library not loaded.');
-	            pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+	            pdfjsLib.GlobalWorkerOptions.workerSrc = window.__pdfjsWorkerSrc || 'vendor/pdf.worker.min.js';
 	            const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
 	            let fullText = '';
             for (let pn = 1; pn <= pdf.numPages; pn++) {
