@@ -8,8 +8,6 @@
 -->
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="./icon.png">
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Last Draft — a screenplay editor by Barüde.">
@@ -18,21 +16,28 @@
     <title>Last Draft</title>
     <style>
         /* --- THEME --- */
-        :root {
-            --bg: #0e0e0e;
-            --paper: #161616;
-            --text: #d8d4cd;
-            --accent: #4a90e2;
-            --select-highlight: rgba(74, 144, 226, 0.25);
-            --font: 'Courier Final Draft', 'Courier Prime', 'Courier New', Courier, monospace;
-        }
+	        :root {
+	            --bg: #0e0e0e;
+	            --paper: #161616;
+	            --text: #d8d4cd;
+	            --accent: #4a90e2;
+	            --select-highlight: rgba(74, 144, 226, 0.25);
+	            /* Group guide lines (subtle, nested). */
+	            --group-line-1: rgba(130, 160, 190, 0.18);
+	            --group-line-2: rgba(130, 160, 190, 0.13);
+	            --group-line-3: rgba(130, 160, 190, 0.10);
+	            --font: 'Courier Final Draft', 'Courier Prime', 'Courier New', Courier, monospace;
+	        }
 
-        body.light-mode {
-            --bg: #e6e3db;
-            --paper: #f7f4ee;
-            --text: #2c2a26;
-            --select-highlight: rgba(74, 144, 226, 0.15);
-        }
+	        body.light-mode {
+	            --bg: #e6e3db;
+	            --paper: #f7f4ee;
+	            --text: #2c2a26;
+	            --select-highlight: rgba(74, 144, 226, 0.15);
+	            --group-line-1: rgba(70, 110, 140, 0.22);
+	            --group-line-2: rgba(70, 110, 140, 0.16);
+	            --group-line-3: rgba(70, 110, 140, 0.12);
+	        }
 
         body.light-mode #floating-actions button {
             background: rgba(250, 248, 244, 0.9);
@@ -44,7 +49,7 @@
             background: rgba(245, 243, 239, 0.95);
             border-color: rgba(180, 175, 165, 0.7);
         }
-        body.light-mode .container-box { border-left-color: rgba(100, 150, 255, 0.25); }
+	        body.light-mode .container-box { border-left-color: var(--group-line-1); }
         body.light-mode .container-header { opacity: 0.5; }
         body.light-mode .container-box:hover .container-header { opacity: 1; }
         body.light-mode .container-version-controls { color: #7a7874; }
@@ -84,6 +89,7 @@
         }
         #floating-actions button:hover { background: rgba(68, 68, 68, 0.9); color: white; border-color: rgba(100, 100, 100, 0.8); transform: scale(1.05); }
         #floating-actions button:active { transform: scale(0.95); }
+        #floating-actions button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         /* --- WORKSPACE --- */
         #workspace {
@@ -110,9 +116,6 @@
             border-left: 3px solid transparent;
             margin: 0; padding: 0;
             max-width: 100%;
-            /* NOTE: overflow must NOT be hidden here — the gutter is absolutely
-               positioned at left:-250px (outside this box) and would be clipped.
-               Long-string overflow is already contained by .input-grid below. */
         }
         .row.multi-selected { background: var(--select-highlight); border-left-color: var(--accent); }
 
@@ -134,8 +137,10 @@
         .row:has(.type-select-menu.open) { z-index: 10000; position: relative; }
         .row:has(.type-select-menu.open) .gutter { z-index: 10001; }
         .type-select-wrapper:has(.type-select-menu.open) { z-index: 10002; position: relative; }
-        .row:hover .gutter, .row:focus-within .gutter { opacity: 1; }
-        .row.multi-selected .gutter { display: none !important; }
+        /* Version/type gutter visibility:
+           - Visible only for the active block (focus-within) or explicitly selected blocks.
+           - Hover alone does not reveal controls (prevents flicker while moving the mouse). */
+        .row:focus-within .gutter, .row.multi-selected .gutter { opacity: 1; }
 
         .gutter-container {
             display: flex; align-items: center; gap: 0;
@@ -143,7 +148,7 @@
             border-radius: 4px; padding: 0; position: relative;
             box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
         }
-        .row:hover .gutter-container, .row:focus-within .gutter-container {
+        .row:focus-within .gutter-container, .row.multi-selected .gutter-container {
             background: #151515; border-color: rgba(220, 220, 220, 0.2);
         }
 
@@ -230,7 +235,7 @@
         body.light-mode select.type-select option:hover { background: rgba(245, 243, 239, 0.98); color: #4a4844; }
         body.light-mode select.type-select option:checked, body.light-mode select.type-select option:focus { background: rgba(240, 238, 234, 0.98); color: var(--accent); font-weight: 500; }
         body.light-mode .gutter-container { background: #f5f3ef; border: 1px solid rgba(200, 195, 185, 0.3); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03); }
-        body.light-mode .row:hover .gutter-container, body.light-mode .row:focus-within .gutter-container { background: #f8f6f2; border-color: rgba(200, 195, 185, 0.4); }
+        body.light-mode .row:focus-within .gutter-container, body.light-mode .row.multi-selected .gutter-container { background: #f8f6f2; border-color: rgba(200, 195, 185, 0.4); }
         body.light-mode .type-select-button { background: rgba(250, 248, 244, 0.6); color: #5a5854; border: 1px solid rgba(200, 195, 185, 0.6); border-bottom: 1px solid rgba(180, 175, 165, 0.8); }
         body.light-mode .type-select-button:hover { color: #4a4844; border-color: rgba(180, 175, 165, 0.8); border-bottom-color: rgba(160, 155, 145, 0.9); background: rgba(250, 248, 244, 0.8); }
         body.light-mode .type-select-button.open { color: var(--accent); border-color: rgba(74, 144, 226, 0.4); border-bottom-color: var(--accent); background: rgba(250, 248, 244, 0.9); }
@@ -244,10 +249,7 @@
         body.light-mode .type-select-option:hover { background: rgba(245, 243, 239, 0.95); color: #4a4844; }
         body.light-mode .type-select-option.active { background: rgba(240, 238, 234, 0.95); color: var(--accent); }
 
-        /* -------------------- INPUT GRID --------------------
-           min-width:0 prevents grid items from overflowing their column.
-           overflow:hidden here (not on .row) contains long unbroken strings
-           without clipping the absolutely-positioned gutter. */
+        /* -------------------- INPUT GRID -------------------- */
         .input-grid {
             display: grid; align-items: start;
             min-width: 0; overflow: hidden; width: 100%;
@@ -274,7 +276,10 @@
         textarea { background: transparent; color: var(--text); resize: none; overflow: hidden; outline: none; min-height: 0; vertical-align: top; }
 
         /* -------------------- CONTAINER (GROUP) -------------------- */
-        .container-box { border-left: 2px solid rgba(100, 150, 255, 0.2); background: transparent; margin: 12px 0; padding: 0 0 0 8px; position: relative; }
+        /* Group side lines: muted, readable hierarchy without dominating the page. */
+        .container-box { border-left: 2px solid var(--group-line-1); background: transparent; margin: 12px 0; padding: 0 0 0 8px; position: relative; }
+        .container-box .container-box { border-left-color: var(--group-line-2); }
+        .container-box .container-box .container-box { border-left-color: var(--group-line-3); }
         .container-header { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px; padding: 4px 0; opacity: 0.4; transition: opacity 0.2s ease; }
         .container-box:hover .container-header { opacity: 1; }
         .container-label { display: none; }
@@ -299,10 +304,7 @@
         #selection-bar.visible { display: flex; animation: popUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
-        /* -------------------- FORMATTING --------------------
-           Indents proportional to the 7.27in A4 content area.
-           Character uses deep left indent (not CSS center) — correct screenplay format.
-           RTL rules below mirror all geometry for Arabic text. */
+        /* -------------------- FORMATTING -------------------- */
         .scene textarea, .scene .replicator {
             font-weight: normal; text-transform: uppercase;
             text-decoration: underline;
@@ -400,10 +402,14 @@
         .scene-drag-handle { cursor: grab; color: #888; font-size: 18px; user-select: none; padding: 4px 8px; flex-shrink: 0; pointer-events: auto; display: inline-block; line-height: 1; touch-action: none; margin-right: 4px; -moz-user-select: none; -ms-user-select: none; -webkit-user-select: none; }
         .scene-drag-handle:active { cursor: grabbing; color: var(--accent); }
         .scene-drag-handle:hover { color: var(--accent); transform: scale(1.1); }
+        .scene-drag-handle.disabled { cursor: not-allowed; color: #555; opacity: 0.55; }
+        .scene-drag-handle.disabled:hover { color: #555; transform: none; }
+        body.light-mode .scene-drag-handle.disabled { color: #9a9790; opacity: 0.75; }
+        body.light-mode .scene-drag-handle.disabled:hover { color: #9a9790; }
         .scene-item-content { flex: 1; }
         .scene-item.dragging { opacity: 0.5; }
 
-        /* Drop indicator — the only drag visual; shown/hidden via JS opacity */
+        /* Drop indicator */
         .drop-indicator {
             position: fixed; height: 3px; background: var(--accent);
             z-index: 10000; pointer-events: none; opacity: 0; border-radius: 2px;
@@ -434,13 +440,8 @@
         .row.search-match { background: rgba(255, 255, 0, 0.15); border-left: 3px solid rgba(255, 255, 0, 0.6); }
         body.light-mode .row.search-match { background: rgba(255, 255, 0, 0.25); border-left-color: rgba(255, 200, 0, 0.8); }
 
-        /* -------------------- PRINT / PDF --------------------
-           @page sets all margins; #page div must have padding:0 to avoid doubling.
-           Element indents are exact inch values from the A4 screenplay spec.
-           @top-right counter not supported in Safari — degrades silently.
-        */
+        /* -------------------- PRINT / PDF (kept for native Print command) -------------------- */
         @media print {
-            /* Margins: 0.945in top/bottom (2.4cm), 0.5in left/right */
             @page {
                 size: A4;
                 margin-top:    0.945in;
@@ -448,11 +449,9 @@
                 margin-bottom: 0.945in;
                 margin-left:   0.5in;
             }
-            /* Page number: "N." right-aligned in header, suppressed on first page */
             @page { @top-right { content: counter(page) "."; font-family: Courier, "Courier New", monospace; font-size: 12pt; font-weight: normal; color: black; vertical-align: bottom; padding-bottom: 6pt; } }
             @page :first { @top-right { content: none; } }
 
-            /* ---- Title page block ---- */
             #title-page-print { display: block !important; page-break-after: always !important; page-break-inside: avoid !important; break-after: page !important; break-inside: avoid !important; width: 100% !important; height: auto !important; min-height: 0 !important; max-height: 100% !important; padding: 0 !important; margin: 0 !important; box-sizing: border-box !important; position: relative !important; overflow: hidden !important; }
             #title-page-print .title-page-content-wrapper { width: 6.5in !important; max-width: 6.5in !important; margin: 0 auto !important; padding: 3.5in 0 1in 0 !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; align-items: center !important; box-sizing: border-box !important; font-family: var(--font) !important; color: black !important; }
             #title-page-print .title-page-title { text-align: center; font-size: 12pt; font-weight: normal; margin: 0 0 0.4in 0; line-height: 1.05; width: 100%; font-family: var(--font); color: black !important; }
@@ -464,17 +463,14 @@
             #title-page-print + #page > .row:first-child, #title-page-print + #page > .container-box:first-child > .row:first-child { margin-top: 0 !important; padding-top: 0 !important; }
             #title-page-print + #page > .row.scene:first-child { margin-top: 0 !important; }
 
-            /* ---- Hide UI chrome ---- */
             #floating-actions, .gutter, .container-header, #selection-bar, #scene-map, #page-buffer { display: none !important; }
 
-            /* ---- Container: collapse framing, only rows render ---- */
             .container-box { display: block !important; border: 0 !important; border-width: 0 !important; padding: 0 !important; margin: 0 !important; background: transparent !important; height: auto !important; min-height: 0 !important; max-height: none !important; line-height: 0 !important; font-size: 0 !important; vertical-align: baseline !important; box-sizing: border-box !important; position: static !important; }
             .container-header { display: none !important; margin: 0 !important; padding: 0 !important; height: 0 !important; min-height: 0 !important; max-height: 0 !important; line-height: 0 !important; font-size: 0 !important; overflow: hidden !important; visibility: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important; width: 0 !important; }
             .container-box > div:not(.row) { display: none !important; margin: 0 !important; padding: 0 !important; height: 0 !important; min-height: 0 !important; max-height: 0 !important; }
             .container-box > .row { font-size: 12pt !important; line-height: normal !important; margin-left: 0 !important; margin-right: 0 !important; }
             #page > .container-box:first-child > .row:first-child { margin-top: 25pt !important; }
 
-            /* ---- Root layout ---- */
             html { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             body, #workspace {
                 background: white !important; height: auto !important;
@@ -484,7 +480,6 @@
                 box-sizing: border-box !important;
             }
 
-            /* ---- Page canvas — padding:0 because @page margins own all whitespace ---- */
             #page {
                 width: 100% !important; max-width: 100% !important;
                 box-shadow: none !important;
@@ -499,7 +494,6 @@
             }
             #page > * { max-width: 100% !important; box-sizing: border-box !important; }
 
-            /* ---- Input grid / replicator ---- */
             textarea { display: none !important; }
             .input-grid { display: block !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; overflow: visible !important; }
             .replicator {
@@ -518,7 +512,6 @@
             .replicator strong { font-weight: bold !important; }
             .replicator em { font-style: italic !important; }
 
-            /* ---- Row base reset ---- */
             .row {
                 overflow: visible !important; height: auto !important;
                 margin-bottom: 0 !important; padding: 0 !important;
@@ -527,9 +520,6 @@
             }
             .container-box { overflow: visible !important; width: 100% !important; box-sizing: border-box !important; }
 
-            /* ---- Element indents (exact inches from A4 screenplay spec) ---- */
-
-            /* --- Row spacing --- */
             .row.scene, .row.action, .row.character, .row.parenthetical, .row.dialogue, .row.transition {
                 margin-left: 0 !important; margin-right: 0 !important;
                 margin-bottom: 0 !important;
@@ -547,7 +537,6 @@
             .row.transition   { margin-top: 12pt  !important; page-break-after: auto !important; page-break-inside: avoid !important; }
             .container-box    { page-break-inside: avoid !important; }
 
-            /* --- SCENE HEADING --- */
             .row.scene .replicator {
                 font-weight: normal !important; text-transform: uppercase !important;
                 text-decoration: underline !important;
@@ -555,38 +544,28 @@
                 width: auto !important; max-width: none !important;
                 line-height: 13pt !important;
             }
-
-            /* --- ACTION --- */
             .row.action .replicator {
                 margin-left: 0.59in !important; margin-right: 0.39in !important;
                 width: auto !important; max-width: none !important;
                 line-height: 12.3pt !important; text-align: left !important;
             }
-
-            /* --- CHARACTER --- */
             .row.character .replicator {
                 text-transform: uppercase !important; text-align: left !important;
                 margin-left: 3.0in !important; margin-right: 0.38in !important;
                 width: auto !important; max-width: none !important;
                 line-height: 12pt !important;
             }
-
-            /* --- DIALOGUE --- */
             .row.dialogue .replicator {
                 margin-left: 1.61in !important; margin-right: 1.70in !important;
                 width: auto !important; max-width: none !important;
                 line-height: 12.3pt !important; text-align: left !important;
             }
-
-            /* --- PARENTHETICAL --- */
             .row.parenthetical .replicator {
                 margin-left: 2.06in !important; margin-right: 2.46in !important;
                 text-indent: 0.10in !important;
                 width: auto !important; max-width: none !important;
                 line-height: 12pt !important; text-align: left !important;
             }
-
-            /* --- TRANSITION --- */
             .row.transition .replicator {
                 text-transform: uppercase !important; text-align: right !important;
                 margin-left: 4.53in !important; margin-right: 0.28in !important;
@@ -594,7 +573,6 @@
                 line-height: 13pt !important;
             }
 
-            /* ---- RTL print: swap left↔right margins ---- */
             .row[dir="rtl"] { direction: rtl !important; unicode-bidi: embed !important; }
             .row[dir="rtl"] .replicator { direction: rtl !important; unicode-bidi: embed !important; word-break: keep-all !important; overflow-wrap: normal !important; white-space: pre-wrap !important; }
             .row[dir="rtl"] .replicator * { direction: rtl !important; unicode-bidi: embed !important; }
@@ -607,8 +585,21 @@
             .row[dir="rtl"].transition .replicator { text-align: left !important; margin-right: 4.53in !important; margin-left: 0.28in !important; }
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+	    <!-- Offline deps (no CDN): keep this app fully runnable from file://
+	         Required load order:
+	         1) vendor/pdf.min.js + vendor/pdf.worker.min.js (PDF import; workerSrc set in loadPDF())
+	         2) vendor/jszip.min.js (DOCX/Pages import helpers)
+	         3) vendor/pdfmake-rtl.js (PDF export engine; exposes window.pdfMake)
+	         4) fonts-base64.js (FONT_*_BASE64 constants used by initPdfMakeFonts())
+	         5) This file’s inline app script (defines Engine, exportPDF(), etc.) -->
+	    <script src="vendor/pdf.min.js"></script>
+	    <script src="vendor/jszip.min.js"></script>
+    <!-- PDF export engine: pdfmake-rtl is a drop-in pdfmake build with proper UAX#9 bidi + Arabic shaping -->
+    <script src="vendor/pdfmake-rtl.js"></script>
+    <!-- Base64 font constants: FONT_COURIERFINAL_REGULAR_BASE64, FONT_COURIERFINAL_BOLD_BASE64,
+         FONT_COURIERARABIC_REGULAR_BASE64, FONT_COURIERARABIC_BOLD_BASE64
+         Load fonts-base64.js here, OR paste the four const definitions directly below. -->
+    <script src="fonts-base64.js"></script>
 </head>
 <body>
 
@@ -662,6 +653,7 @@
     </div>
 </div>
 
+
 <div id="workspace">
     <div id="title-page-print" style="display: none;"></div>
     <div id="page"></div>
@@ -669,7 +661,85 @@
 </div>
 
 <script>
-    const TYPES = ['scene', 'action', 'character', 'parenthetical', 'dialogue', 'transition'];
+    // -----------------------------------------------------------------------
+    // initPdfMakeFonts — wire the four pre-loaded base64 font constants into
+    // pdfmake's VFS and font registry.  Called once before createPdf().
+    // The four constants come from fonts-base64.js (or an inline <script>):
+    //   FONT_COURIERFINAL_REGULAR_BASE64
+    //   FONT_COURIERFINAL_BOLD_BASE64
+    //   FONT_COURIERARABIC_REGULAR_BASE64
+    //   FONT_COURIERARABIC_BOLD_BASE64
+    // -----------------------------------------------------------------------
+		    function initPdfMakeFonts() {
+		  // pdfmake-rtl does NOT read `pdfMake.vfs` directly. It uses an internal
+		  // VirtualFileSystem instance (pdfMake.virtualfs). To add our embedded
+		  // base64 fonts we must call `pdfMake.addVirtualFileSystem(vfs)`.
+		  //
+		  // (We still keep `pdfMake.vfs` populated for compatibility/debugging.)
+		  if (window.pdfMake && window.pdfMake.__lastDraftFontsReady) return;
+
+		  window.pdfMake = window.pdfMake || {};
+		  window.pdfMake.vfs = window.pdfMake.vfs || {};
+
+		  const required = [
+		    ['FONT_CFD_REGULAR_BASE64', typeof FONT_CFD_REGULAR_BASE64 !== 'undefined' ? FONT_CFD_REGULAR_BASE64 : null],
+		    ['FONT_CFD_BOLD_BASE64',    typeof FONT_CFD_BOLD_BASE64    !== 'undefined' ? FONT_CFD_BOLD_BASE64    : null],
+		    ['FONT_CFD_ITALIC_BASE64',  typeof FONT_CFD_ITALIC_BASE64  !== 'undefined' ? FONT_CFD_ITALIC_BASE64  : null],
+		    ['FONT_COURIER_ARABIC_BASE64', typeof FONT_COURIER_ARABIC_BASE64 !== 'undefined' ? FONT_COURIER_ARABIC_BASE64 : null],
+		  ];
+		  for (const [name, val] of required) {
+		    if (typeof val !== 'string' || !val) {
+		      throw new Error(`Missing embedded font constant: ${name}. Check fonts-base64.js load order.`);
+		    }
+		  }
+
+		  const vfs = {
+		    "CourierFinalDraft-Regular.ttf": FONT_CFD_REGULAR_BASE64,
+		    "CourierFinalDraft-Bold.ttf":    FONT_CFD_BOLD_BASE64,
+		    "CourierFinalDraft-Italic.ttf":  FONT_CFD_ITALIC_BASE64,
+		    "CourierArabic-Regular.ttf":     FONT_COURIER_ARABIC_BASE64,
+		  };
+
+		  // Populate `pdfMake.vfs` for compatibility/debugging
+		  Object.assign(window.pdfMake.vfs, vfs);
+
+		  // Feed the internal VFS used by pdfmake-rtl
+		  if (typeof window.pdfMake.addVirtualFileSystem === 'function') {
+		    window.pdfMake.addVirtualFileSystem(vfs);
+		  }
+
+		  const fontFamilies = {
+		    CourierFinalDraft: {
+		      normal: "CourierFinalDraft-Regular.ttf",
+		      bold: "CourierFinalDraft-Bold.ttf",
+		      italics: "CourierFinalDraft-Italic.ttf",
+		      bolditalics: "CourierFinalDraft-Italic.ttf"
+		    },
+		    CourierArabic: {
+		      normal: "CourierArabic-Regular.ttf",
+		      bold: "CourierArabic-Regular.ttf",
+		      italics: "CourierArabic-Regular.ttf",
+		      bolditalics: "CourierArabic-Regular.ttf"
+		    }
+		  };
+
+		  // Merge families into whatever fonts the engine already ships with (Roboto/Cairo).
+		  if (typeof window.pdfMake.addFonts === 'function') {
+		    window.pdfMake.addFonts(fontFamilies);
+		  } else {
+		    window.pdfMake.fonts = Object.assign(window.pdfMake.fonts || {}, fontFamilies);
+		  }
+
+		  window.pdfMake.__lastDraftFontsReady = true;
+		}
+
+	    const TYPES = ['scene', 'action', 'character', 'parenthetical', 'dialogue', 'transition'];
+	
+	    // Nested grouping limit:
+	    // We cap depth to keep the editor fast and the mental model simple for screenwriting.
+	    // Depth is counted by how many containers you're inside (top-level group = depth 1).
+	    // The app supports grouping inside groups up to this depth; beyond it we no-op with an alert.
+	    const MAX_GROUP_DEPTH = 3;
 
     class Engine {
         constructor() {
@@ -697,12 +767,17 @@
             this.selBar = document.getElementById('selection-bar');
             this.selCount = document.getElementById('sel-count');
 
-            this.lastFocusedIndex = null;
-            this.lastFocusedContainerIndex = null;
-            this.multiSelections = [];
+	            // Selection model (nested-group aware):
+	            // - `selectionScopePath` identifies the container whose children are being multi-selected.
+	            //   `null` means the top-level `this.state` array.
+	            // - `multiSelections` stores indices within that scope.
+	            // - `lastFocusedPath` tracks the currently focused block path (for range selection & edits).
+	            this.lastFocusedPath = null;
+	            this.lastFocusedIndexInScope = null;
+	            this.selectionScopePath = null;
+	            this.multiSelections = [];
             this.scenes = [];
 
-            // Drag — stores stable block UUID, not a raw array index
             this.draggedSceneBlockId = null;
             this.dropOccurred = false;
 
@@ -713,6 +788,9 @@
             this.isUndoRedo = false;
             this.inputDebounceTimers = new Map();
             this.pauseDetectionDelay = 500;
+
+            // PDF font cache flag
+            this._pdfFontReady = false;
 
             this.initTheme();
             this.initDragDrop();
@@ -740,18 +818,121 @@
         createBlock(type, text = '') {
             return { id: Math.random().toString(36).substring(2, 11), isContainer: false, type, versions: [text], active: 0 };
         }
-        createContainer(blocks) {
-            return { id: Math.random().toString(36).substring(2, 11), isContainer: true, versions: [blocks], active: 0 };
-        }
+	        createContainer(blocks) {
+	            return { id: Math.random().toString(36).substring(2, 11), isContainer: true, versions: [blocks], active: 0 };
+	        }
+	
+	        // ───────────────────────────────────────────────────────────────────
+	        // Nested container/path helpers
+	        // ───────────────────────────────────────────────────────────────────
+	
+	        _pathsEqual(a, b) {
+	            const aa = (a && a.length) ? a : null;
+	            const bb = (b && b.length) ? b : null;
+	            if (aa === null && bb === null) return true;
+	            if (aa === null || bb === null) return false;
+	            if (aa.length !== bb.length) return false;
+	            for (let i = 0; i < aa.length; i++) if (aa[i] !== bb[i]) return false;
+	            return true;
+	        }
+	
+	        _scopePathFromItemPath(path) {
+	            return path.length <= 1 ? null : path.slice(0, -1);
+	        }
+	
+	        _domIdForInputPath(path) {
+	            return 'in-' + path.join('-');
+	        }
+	
+	        _getItemByPath(path) {
+	            if (!Array.isArray(path) || path.length === 0) return null;
+	            let items = this.state;
+	            let item = null;
+	            for (let depth = 0; depth < path.length; depth++) {
+	                const idx = path[depth];
+	                item = items[idx];
+	                if (!item) return null;
+	                if (depth < path.length - 1) {
+	                    if (!item.isContainer) return null;
+	                    items = item.versions[item.active] || [];
+	                }
+	            }
+	            return item;
+	        }
+	
+	        _getItemsInScope(scopePath) {
+	            if (!scopePath) return this.state;
+	            const container = this._getItemByPath(scopePath);
+	            if (!container || !container.isContainer) return null;
+	            return container.versions[container.active] || [];
+	        }
+	
+	        _getScopeDepth(scopePath) {
+	            return scopePath ? scopePath.length : 0;
+	        }
+	
+	        _ensureMinimumScript() {
+	            // Guarantee at least one real block exists somewhere, otherwise the editor and PDF export
+	            // become undefined. If everything was deleted, recreate a single empty scene block at root.
+	            if (this._flattenBlocks(this.state).length === 0) {
+	                this.state = [this.createBlock('scene', '')];
+	            }
+	        }
+	
+	        _findFirstBlockPathInItem(itemPath) {
+	            const item = this._getItemByPath(itemPath);
+	            if (!item) return null;
+	            if (!item.isContainer) return itemPath;
+	            const children = item.versions[item.active] || [];
+	            for (let i = 0; i < children.length; i++) {
+	                const p = this._findFirstBlockPathInItem(itemPath.concat(i));
+	                if (p) return p;
+	            }
+	            return null;
+	        }
+	
+	        _findLastBlockPathInItem(itemPath) {
+	            const item = this._getItemByPath(itemPath);
+	            if (!item) return null;
+	            if (!item.isContainer) return itemPath;
+	            const children = item.versions[item.active] || [];
+	            for (let i = children.length - 1; i >= 0; i--) {
+	                const p = this._findLastBlockPathInItem(itemPath.concat(i));
+	                if (p) return p;
+	            }
+	            return null;
+	        }
+	
+	        _findLastBlockPathInDocument() {
+	            for (let i = this.state.length - 1; i >= 0; i--) {
+	                const p = this._findLastBlockPathInItem([i]);
+	                if (p) return p;
+	            }
+	            return null;
+	        }
+	
+	        _collectTextFromItem(item) {
+	            if (!item) return '';
+	            if (!item.isContainer) return (item.versions?.[item.active] || '');
+	            const children = item.versions?.[item.active] || [];
+	            let out = '';
+	            for (const child of children) {
+	                const t = this._collectTextFromItem(child);
+	                if (t) out += (out ? ' ' : '') + t;
+	            }
+	            return out;
+	        }
+	
+	        _renderItem(item, path) {
+	            return item.isContainer ? this.renderContainer(item, path) : this.renderBlock(item, path);
+	        }
 
-        render(useBuffer = false) {
-            const buildFragment = () => {
-                const fragment = document.createDocumentFragment();
-                this.state.forEach((item, idx) => {
-                    fragment.appendChild(item.isContainer ? this.renderContainer(item, idx) : this.renderBlock(item, idx));
-                });
-                return fragment;
-            };
+	        render(useBuffer = false) {
+	            const buildFragment = () => {
+	                const fragment = document.createDocumentFragment();
+	                this.state.forEach((item, idx) => fragment.appendChild(this._renderItem(item, [idx])));
+	                return fragment;
+	            };
 
             if (useBuffer && this.pageBuffer) {
                 this.pageBuffer.innerHTML = '';
@@ -768,7 +949,6 @@
                 this.pageBuffer.style.display = 'none';
             } else {
                 const fragment = buildFragment();
-                // Disconnect any lingering MutationObservers before clearing the DOM
                 this.page.querySelectorAll('.type-select-menu').forEach(m => { if (m._obs) { m._obs.disconnect(); m._obs = null; } });
                 if (this.page.replaceChildren) {
                     this.page.replaceChildren(fragment);
@@ -785,93 +965,91 @@
                 this.sceneMapNeedsRebuild = true;
                 this.isUndoRedo = false;
             }
-        }
+	        }
 
-        renderBlock(block, idx, isInsideContainer = false, containerIdx = null) {
-            const row = document.createElement('div');
-            row.className = `row ${block.type}`;
-            row.id = isInsideContainer ? `c-${containerIdx}-b-${idx}` : `row-${idx}`;
+	        renderBlock(block, path) {
+	            const idx = path[path.length - 1];
+	            const scopePath = this._scopePathFromItemPath(path);
+	            const row = document.createElement('div');
+	            row.className = `row ${block.type}`;
+	            row.id = (path.length === 1) ? `row-${idx}` : `row-p-${path.join('-')}`;
 
-            const text = block.versions[block.active];
-            if (/[\u0600-\u06FF]/.test(text)) row.setAttribute('dir', 'rtl');
-            if (this.isBlockSelected(idx, containerIdx)) row.classList.add('multi-selected');
+	            const text = block.versions[block.active];
+	            if (/[\u0600-\u06FF]/.test(text)) row.setAttribute('dir', 'rtl');
+	            if (this.isBlockSelected(path)) row.classList.add('multi-selected');
 
-            row.onmousedown = (e) => this.handleRowClick(e, idx, containerIdx);
+	            row.onmousedown = (e) => this.handleRowClick(e, path);
 
-            if (!this.isBlockSelected(idx, containerIdx)) {
-                const gutter = document.createElement('div');
-                gutter.className = 'gutter';
-                const gutterContainer = document.createElement('div');
-                gutterContainer.className = 'gutter-container';
+	            const gutter = document.createElement('div');
+	            gutter.className = 'gutter';
+	            const gutterContainer = document.createElement('div');
+	            gutterContainer.className = 'gutter-container';
 
-                // Type selector
-                const selectWrapper = document.createElement('div');
-                selectWrapper.className = 'type-select-wrapper';
-                const selectButton = document.createElement('button');
-                selectButton.className = 'type-select-button';
-                selectButton.type = 'button';
-                selectButton.innerHTML = block.type.toUpperCase().substring(0,4) + '<svg class="type-select-arrow" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L3.5 3L6 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="square" stroke-linejoin="miter"/></svg>';
-                const selectMenu = document.createElement('div');
-                selectMenu.className = 'type-select-menu';
+	            const selectWrapper = document.createElement('div');
+	            selectWrapper.className = 'type-select-wrapper';
+	            const selectButton = document.createElement('button');
+	            selectButton.className = 'type-select-button';
+	            selectButton.type = 'button';
+	            selectButton.innerHTML = block.type.toUpperCase().substring(0,4) + '<svg class="type-select-arrow" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L3.5 3L6 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="square" stroke-linejoin="miter"/></svg>';
+	            const selectMenu = document.createElement('div');
+	            selectMenu.className = 'type-select-menu';
 
-                TYPES.forEach(t => {
-                    const option = document.createElement('button');
-                    option.className = 'type-select-option';
-                    if (t === block.type) option.classList.add('active');
-                    option.textContent = t.toUpperCase().substring(0,4);
-                    option.onclick = (e) => { e.stopPropagation(); e.preventDefault(); this.saveToHistory(); block.type = t; this.save(); this.render(); };
-                    option.onmousedown = (e) => { e.stopPropagation(); e.preventDefault(); };
-                    selectMenu.appendChild(option);
-                });
+	            TYPES.forEach(t => {
+	                const option = document.createElement('button');
+	                option.className = 'type-select-option';
+	                if (t === block.type) option.classList.add('active');
+	                option.textContent = t.toUpperCase().substring(0,4);
+	                option.onclick = (e) => { e.stopPropagation(); e.preventDefault(); this.saveToHistory(); block.type = t; this.save(); this.render(); this.focus(path); };
+	                option.onmousedown = (e) => { e.stopPropagation(); e.preventDefault(); };
+	                selectMenu.appendChild(option);
+	            });
 
-                selectButton.onclick = (e) => {
-                    e.stopPropagation();
-                    const isOpen = selectMenu.classList.contains('open');
-                    document.querySelectorAll('.type-select-menu.open').forEach(m => { if (m !== selectMenu) m.classList.remove('open'); });
-                    document.querySelectorAll('.type-select-button.open').forEach(b => { if (b !== selectButton) b.classList.remove('open'); });
-                    selectMenu.classList.toggle('open', !isOpen);
-                    selectButton.classList.toggle('open', !isOpen);
-                    document.body.classList.toggle('dropdown-open', !isOpen);
-                };
-                selectButton.onmousedown = (e) => e.stopPropagation();
-                selectMenu.onmousedown = (e) => e.stopPropagation();
+	            selectButton.onclick = (e) => {
+	                e.stopPropagation();
+	                const isOpen = selectMenu.classList.contains('open');
+	                document.querySelectorAll('.type-select-menu.open').forEach(m => { if (m !== selectMenu) m.classList.remove('open'); });
+	                document.querySelectorAll('.type-select-button.open').forEach(b => { if (b !== selectButton) b.classList.remove('open'); });
+	                selectMenu.classList.toggle('open', !isOpen);
+	                selectButton.classList.toggle('open', !isOpen);
+	                document.body.classList.toggle('dropdown-open', !isOpen);
+	            };
+	            selectButton.onmousedown = (e) => e.stopPropagation();
+	            selectMenu.onmousedown = (e) => e.stopPropagation();
 
-                const obs = new MutationObserver(() => {
-                    if (!selectMenu.classList.contains('open') && document.querySelectorAll('.type-select-menu.open').length === 0) {
-                        document.body.classList.remove('dropdown-open');
-                    }
-                });
-                obs.observe(selectMenu, { attributes: true, attributeFilter: ['class'] });
-                selectMenu._obs = obs; // stored for cleanup on re-render
+	            const obs = new MutationObserver(() => {
+	                if (!selectMenu.classList.contains('open') && document.querySelectorAll('.type-select-menu.open').length === 0) {
+	                    document.body.classList.remove('dropdown-open');
+	                }
+	            });
+	            obs.observe(selectMenu, { attributes: true, attributeFilter: ['class'] });
+	            selectMenu._obs = obs;
 
-                selectWrapper.appendChild(selectButton);
-                selectWrapper.appendChild(selectMenu);
-                gutterContainer.appendChild(selectWrapper);
+	            selectWrapper.appendChild(selectButton);
+	            selectWrapper.appendChild(selectMenu);
+	            gutterContainer.appendChild(selectWrapper);
 
-                // Version controls — ‹ N › +
-                const versionControls = document.createElement('div');
-                versionControls.className = 'version-controls';
-                const prevBtn = document.createElement('button');
-                prevBtn.textContent = '‹'; prevBtn.title = 'Previous version';
-                prevBtn.onclick = () => app.blockVer(block.id, -1);
-                const versionNum = document.createElement('span');
-                versionNum.className = 'version-number';
-                versionNum.textContent = block.active + 1;
-                const nextBtn = document.createElement('button');
-                nextBtn.textContent = '›'; nextBtn.title = 'Next version';
-                nextBtn.onclick = () => app.blockVer(block.id, 1);
-                const addBtn = document.createElement('button');
-                addBtn.className = 'add-version-btn'; addBtn.textContent = '+'; addBtn.title = 'New version';
-                addBtn.onclick = () => app.addBlockVer(block.id);
-                versionControls.appendChild(prevBtn);
-                versionControls.appendChild(versionNum);
-                versionControls.appendChild(nextBtn);
-                versionControls.appendChild(addBtn);
-                gutterContainer.appendChild(versionControls);
+	            const versionControls = document.createElement('div');
+	            versionControls.className = 'version-controls';
+	            const prevBtn = document.createElement('button');
+	            prevBtn.textContent = '‹'; prevBtn.title = 'Previous version';
+	            prevBtn.onclick = () => app.blockVer(block.id, -1);
+	            const versionNum = document.createElement('span');
+	            versionNum.className = 'version-number';
+	            versionNum.textContent = block.active + 1;
+	            const nextBtn = document.createElement('button');
+	            nextBtn.textContent = '›'; nextBtn.title = 'Next version';
+	            nextBtn.onclick = () => app.blockVer(block.id, 1);
+	            const addBtn = document.createElement('button');
+	            addBtn.className = 'add-version-btn'; addBtn.textContent = '+'; addBtn.title = 'New version';
+	            addBtn.onclick = () => app.addBlockVer(block.id);
+	            versionControls.appendChild(prevBtn);
+	            versionControls.appendChild(versionNum);
+	            versionControls.appendChild(nextBtn);
+	            versionControls.appendChild(addBtn);
+	            gutterContainer.appendChild(versionControls);
 
-                gutter.appendChild(gutterContainer);
-                row.appendChild(gutter);
-            }
+	            gutter.appendChild(gutterContainer);
+	            row.appendChild(gutter);
 
             const grid = document.createElement('div');
             grid.className = 'input-grid';
@@ -879,20 +1057,22 @@
             replicator.className = 'replicator';
             replicator.innerHTML = this.parseMarkdown(text) + '\u200B';
 
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.id = isInsideContainer ? `in-c-${containerIdx}-b-${idx}` : `in-row-${idx}`;
+	            const ta = document.createElement('textarea');
+	            ta.value = text;
+	            ta.id = this._domIdForInputPath(path);
 
-            const syncHeight = () => { ta.style.height = 'auto'; ta.style.height = replicator.scrollHeight + 'px'; };
-            let editStartValue = text, hasSavedForThisEdit = false;
+	            const syncHeight = () => { ta.style.height = 'auto'; ta.style.height = replicator.scrollHeight + 'px'; };
+	            let editStartValue = text, hasSavedForThisEdit = false;
 
-            ta.onfocus = (e) => {
-                if (!hasSavedForThisEdit) { editStartValue = ta.value; this.saveToHistory(); hasSavedForThisEdit = true; }
-                if (!e.shiftKey) {
-                    this.lastFocusedIndex = idx; this.lastFocusedContainerIndex = containerIdx;
-                    if (this.multiSelections.length > 0) this.clearSelection();
-                }
-            };
+	            ta.onfocus = (e) => {
+	                if (!hasSavedForThisEdit) { editStartValue = ta.value; this.saveToHistory(); hasSavedForThisEdit = true; }
+	                if (!e.shiftKey) {
+	                    this.lastFocusedPath = path;
+	                    this.selectionScopePath = scopePath;
+	                    this.lastFocusedIndexInScope = idx;
+	                    if (this.multiSelections.length > 0) this.clearSelection(path);
+	                }
+	            };
 
             ta.oninput = (e) => {
                 const newValue = e.target.value;
@@ -926,102 +1106,157 @@
 
             setTimeout(syncHeight, 0);
 
-            ta.onkeydown = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.handleEnter(block, idx, isInsideContainer, containerIdx); }
-                if (e.key === 'Backspace' && ta.value === '' && this.multiSelections.length === 0) { e.preventDefault(); this.handleDelete(block, idx, isInsideContainer, containerIdx); }
-            };
+	            ta.onkeydown = (e) => {
+	                // Escape nested groups while typing:
+	                // If you're in the *last* block of a group, that block is empty, and the group itself
+	                // is the last item in its parent, pressing Enter will "break out" and create a new
+	                // sibling block *after the group* (at the next higher level).
+	                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.handleEnter(block, path); }
+	                if (e.key === 'Backspace' && ta.value === '' && this.multiSelections.length === 0) { e.preventDefault(); this.handleDelete(block, path); }
+	            };
 
             grid.appendChild(replicator); grid.appendChild(ta); row.appendChild(grid);
             return row;
         }
 
-        renderContainer(container, idx) {
-            const box = document.createElement('div');
-            box.className = 'container-box';
-            const header = document.createElement('div'); header.className = 'container-header';
-            const controls = document.createElement('div'); controls.className = 'container-version-controls';
-            const prevBtn = document.createElement('button');
-            prevBtn.className = 'container-version-btn container-version-nav'; prevBtn.textContent = '‹'; prevBtn.title = 'Previous version';
-            prevBtn.onclick = () => app.containerVer(idx, -1);
-            const versionNum = document.createElement('span');
-            versionNum.className = 'container-version-number'; versionNum.textContent = `v${container.active + 1}`;
-            const nextBtn = document.createElement('button');
-            nextBtn.className = 'container-version-btn container-version-nav'; nextBtn.textContent = '›'; nextBtn.title = 'Next version';
-            nextBtn.onclick = () => app.containerVer(idx, 1);
-            const addBtn = document.createElement('button');
-            addBtn.className = 'container-version-btn container-add-btn'; addBtn.textContent = '+'; addBtn.title = 'New version';
-            addBtn.onclick = () => app.addContainerVer(idx);
-            const ungroupBtn = document.createElement('button');
-            ungroupBtn.className = 'container-version-btn container-ungroup-btn'; ungroupBtn.textContent = 'Ungroup';
-            ungroupBtn.onclick = () => app.ungroup(idx);
-            controls.appendChild(prevBtn); controls.appendChild(versionNum); controls.appendChild(nextBtn); controls.appendChild(addBtn); controls.appendChild(ungroupBtn);
-            header.appendChild(controls); box.appendChild(header);
-            const activeBlocks = container.versions[container.active];
-            if (activeBlocks.length === 0) {
-                const empty = document.createElement('div');
-                empty.innerText = "(Empty Group - Click to Add)"; empty.style.color = "#555"; empty.style.fontSize = "12px"; empty.style.cursor = "pointer";
-                empty.onclick = () => { activeBlocks.push(this.createBlock('action')); this.save(); this.render(); };
-                box.appendChild(empty);
-            } else {
-                activeBlocks.forEach((b, bIdx) => box.appendChild(this.renderBlock(b, bIdx, true, idx)));
-            }
-            return box;
-        }
+	        renderContainer(container, path) {
+	            const box = document.createElement('div');
+	            box.className = 'container-box';
+	            const header = document.createElement('div'); header.className = 'container-header';
+	            const controls = document.createElement('div'); controls.className = 'container-version-controls';
+	            const prevBtn = document.createElement('button');
+	            prevBtn.className = 'container-version-btn container-version-nav'; prevBtn.textContent = '‹'; prevBtn.title = 'Previous version';
+	            prevBtn.onclick = () => app.containerVer(path, -1);
+	            const versionNum = document.createElement('span');
+	            versionNum.className = 'container-version-number'; versionNum.textContent = `v${container.active + 1}`;
+	            const nextBtn = document.createElement('button');
+	            nextBtn.className = 'container-version-btn container-version-nav'; nextBtn.textContent = '›'; nextBtn.title = 'Next version';
+	            nextBtn.onclick = () => app.containerVer(path, 1);
+	            const addBtn = document.createElement('button');
+	            addBtn.className = 'container-version-btn container-add-btn'; addBtn.textContent = '+'; addBtn.title = 'New version';
+	            addBtn.onclick = () => app.addContainerVer(path);
+	            const ungroupBtn = document.createElement('button');
+	            ungroupBtn.className = 'container-version-btn container-ungroup-btn'; ungroupBtn.textContent = 'Ungroup';
+	            ungroupBtn.onclick = () => app.ungroup(path);
+	            controls.appendChild(prevBtn); controls.appendChild(versionNum); controls.appendChild(nextBtn); controls.appendChild(addBtn); controls.appendChild(ungroupBtn);
+	            header.appendChild(controls); box.appendChild(header);
+	            const activeItems = container.versions[container.active];
+	            if (activeItems.length === 0) {
+	                const empty = document.createElement('div');
+	                empty.innerText = "(Empty Group - Click to Add)"; empty.style.color = "#555"; empty.style.fontSize = "12px"; empty.style.cursor = "pointer";
+		                empty.onclick = () => { activeItems.push(this.createBlock('action')); this.save(); this.render(); this.focus(path.concat(0)); };
+	                box.appendChild(empty);
+	            } else {
+	                activeItems.forEach((child, childIdx) => box.appendChild(this._renderItem(child, path.concat(childIdx))));
+	            }
+	            return box;
+	        }
 
-        handleRowClick(e, idx, containerIdx) {
-            if (e.target.closest('.type-select-menu') || e.target.closest('.type-select-option') || e.target.closest('.type-select-wrapper')) return;
-            if (e.shiftKey && this.lastFocusedIndex !== null && this.lastFocusedContainerIndex === containerIdx) {
-                e.preventDefault();
-                const start = Math.min(this.lastFocusedIndex, idx), end = Math.max(this.lastFocusedIndex, idx);
-                this.multiSelections = [];
-                for (let i = start; i <= end; i++) this.multiSelections.push(i);
-                this.render();
-            }
-        }
+	        handleRowClick(e, path) {
+	            if (e.target.closest('.type-select-menu') || e.target.closest('.type-select-option') || e.target.closest('.type-select-wrapper')) return;
+	            const idx = path[path.length - 1];
+	            const scopePath = this._scopePathFromItemPath(path);
+	            if (e.shiftKey && this.lastFocusedIndexInScope !== null && this._pathsEqual(this.selectionScopePath, scopePath)) {
+	                e.preventDefault();
+	                const start = Math.min(this.lastFocusedIndexInScope, idx), end = Math.max(this.lastFocusedIndexInScope, idx);
+	                this.multiSelections = [];
+	                for (let i = start; i <= end; i++) this.multiSelections.push(i);
+	                this.selectionScopePath = scopePath;
+	                this.render();
+	            }
+	        }
 
-        updateSelectionUI() {
-            if (this.multiSelections.length > 0) { this.selBar.classList.add('visible'); this.selCount.innerText = `${this.multiSelections.length} Selected`; }
-            else this.selBar.classList.remove('visible');
-        }
-        clearSelection() { this.multiSelections = []; this.render(); }
-        isBlockSelected(idx, containerIdx) {
-            if (this.multiSelections.length === 0) return false;
-            if (this.lastFocusedContainerIndex !== containerIdx) return false;
-            return this.multiSelections.includes(idx);
-        }
+	        updateSelectionUI() {
+	            if (this.multiSelections.length > 0) { this.selBar.classList.add('visible'); this.selCount.innerText = `${this.multiSelections.length} Selected`; }
+	            else this.selBar.classList.remove('visible');
+	        }
+	        clearSelection(preserveFocusPath = null) {
+	            this.multiSelections = [];
+	            // Keep scope, but remove any visual selection immediately.
+	            this.render();
+	            if (preserveFocusPath) this.focus(preserveFocusPath);
+	        }
+	        isBlockSelected(path) {
+	            if (this.multiSelections.length === 0) return false;
+	            const idx = path[path.length - 1];
+	            const scopePath = this._scopePathFromItemPath(path);
+	            if (!this._pathsEqual(this.selectionScopePath, scopePath)) return false;
+	            return this.multiSelections.includes(idx);
+	        }
 
-        groupSelection() {
-            if (this.multiSelections.length === 0) return;
-            if (this.lastFocusedContainerIndex !== null) { alert("You are already inside a group. Nested grouping not supported."); return; }
-            this.saveToHistory();
-            this.multiSelections.sort((a,b) => a-b);
-            const first = this.multiSelections[0], count = this.multiSelections.length;
-            const extracted = this.state.splice(first, count);
-            if (extracted.some(i => i.isContainer)) { alert("Cannot group existing groups."); this.state.splice(first, 0, ...extracted); this.history.pop(); this.historyIndex--; return; }
-            this.state.splice(first, 0, this.createContainer(extracted));
-            this.clearSelection(); this.save(); this.render();
-            this.history[this.historyIndex] = JSON.parse(JSON.stringify(this.state));
-        }
+	        groupSelection() {
+	            if (this.multiSelections.length === 0) return;
+	            if (this.multiSelections.length < 2) return; // no-op for single selection
+	
+	            const scopePath = this.selectionScopePath;
+	            const scopeItems = this._getItemsInScope(scopePath);
+	            if (!scopeItems) return;
+	
+	            const newDepth = this._getScopeDepth(scopePath) + 1;
+	            if (newDepth > MAX_GROUP_DEPTH) {
+	                alert(`Maximum group nesting depth is ${MAX_GROUP_DEPTH}.`);
+	                return;
+	            }
+	
+	            // We only group blocks (not existing groups) to keep the structure predictable.
+	            // Nested groups are created by grouping blocks *inside* an existing group.
+	            const selected = Array.from(new Set(this.multiSelections)).filter(i => i >= 0 && i < scopeItems.length).sort((a, b) => a - b);
+	            const itemsToGroup = selected.map(i => scopeItems[i]).filter(Boolean);
+	            if (itemsToGroup.some(it => it.isContainer)) { alert("Cannot group existing groups."); return; }
+	            this.saveToHistory();
+	
+	            // Remove selected indices from the scope (descending), preserving original order.
+	            const extracted = [];
+	            for (let i = selected.length - 1; i >= 0; i--) {
+	                extracted.unshift(scopeItems.splice(selected[i], 1)[0]);
+	            }
+	
+	            const insertAt = selected[0];
+	            const newContainer = this.createContainer(extracted);
+	            scopeItems.splice(insertAt, 0, newContainer);
+	
+	            this.multiSelections = [];
+	            this.save();
+	            this.render();
+	            this.history[this.historyIndex] = JSON.parse(JSON.stringify(this.state));
+	
+	            // Focus the first block inside the new group (if any).
+	            const newContainerPath = scopePath ? scopePath.concat(insertAt) : [insertAt];
+	            const focusPath = this._findFirstBlockPathInItem(newContainerPath);
+	            if (focusPath) this.focus(focusPath);
+	        }
 
-        bulkDelete() {
-            if (this.multiSelections.length === 0) return;
-            this.saveToHistory();
-            const cIdx = this.lastFocusedContainerIndex;
-            this.multiSelections.sort((a,b) => b-a);
-            if (cIdx !== null) {
-                const blocks = this.state[cIdx].versions[this.state[cIdx].active];
-                if (this.multiSelections.length >= blocks.length) return;
-                this.multiSelections.forEach(idx => { if (idx < blocks.length) blocks.splice(idx, 1); });
-            } else {
-                if (this.multiSelections.length >= this.state.length) { this.state = [this.createBlock('scene', '')]; }
-                else this.multiSelections.forEach(idx => { if (idx < this.state.length) this.state.splice(idx, 1); });
-            }
-            this.clearSelection(); this.save(); this.render();
-            if (this.state.length > 0) {
-                if (cIdx !== null) { const blocks = this.state[cIdx].versions[this.state[cIdx].active]; if (blocks.length > 0) this.focus(true, cIdx, blocks.length - 1); }
-                else this.focus(false, null, this.state.length - 1);
-            }
-        }
+	        bulkDelete() {
+	            if (this.multiSelections.length === 0) return;
+	            this.saveToHistory();
+	            const scopePath = this.selectionScopePath;
+	            const scopeItems = this._getItemsInScope(scopePath);
+	            if (!scopeItems) return;
+	
+	            const selected = Array.from(new Set(this.multiSelections))
+	                .filter(i => i >= 0 && i < scopeItems.length)
+	                .sort((a, b) => b - a);
+	            if (selected.length === 0) return;
+	
+	            const minIdx = Math.min(...selected);
+	            selected.forEach(i => scopeItems.splice(i, 1));
+	
+	            this.multiSelections = [];
+	            this._ensureMinimumScript();
+	            this.save();
+	            this.render();
+	
+	            // Focus a nearby block in the same scope if possible; otherwise fall back to last block.
+	            const remaining = this._getItemsInScope(scopePath) || [];
+	            const candidateIdx = Math.max(0, Math.min(minIdx - 1, remaining.length - 1));
+	            let focusPath = null;
+	            if (remaining.length > 0) {
+	                const candidatePath = (scopePath ? scopePath.concat(candidateIdx) : [candidateIdx]);
+	                focusPath = this._findLastBlockPathInItem(candidatePath) || this._findFirstBlockPathInItem(candidatePath);
+	            }
+	            if (!focusPath) focusPath = this._findLastBlockPathInDocument();
+	            if (focusPath) this.focus(focusPath);
+	        }
 
         handleGlobalKey(e) {
             if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S') && !e.shiftKey) { e.preventDefault(); this.saveJSON(); return; }
@@ -1065,93 +1300,151 @@
             return html;
         }
 
-        handleEnter(block, idx, inside, cIdx) {
-            this.saveToHistory();
-            let next = 'action';
-            if (block.type === 'character') next = 'dialogue';
-            if (block.type === 'parenthetical') next = 'dialogue';
-            if (block.type === 'transition') next = 'scene';
-            const newBlock = this.createBlock(next);
-            if (inside) { this.state[cIdx].versions[this.state[cIdx].active].splice(idx + 1, 0, newBlock); this.save(); this.render(); this.focus(true, cIdx, idx + 1); }
-            else { this.state.splice(idx + 1, 0, newBlock); this.save(); this.render(); this.focus(false, null, idx + 1); }
-        }
+	        handleEnter(block, path) {
+	            this.saveToHistory();
+	            let next = 'action';
+	            if (block.type === 'character') next = 'dialogue';
+	            if (block.type === 'parenthetical') next = 'dialogue';
+	            if (block.type === 'transition') next = 'scene';
+	            const newBlock = this.createBlock(next);
+	
+	            const idx = path[path.length - 1];
+	            const scopePath = this._scopePathFromItemPath(path);
+	            const scopeItems = this._getItemsInScope(scopePath);
+	            if (!scopeItems) return;
+	
+	            const curText = (block.versions[block.active] || '');
+	            const isEmpty = curText.trim() === '';
+	
+	            // "Break out" rule (see keydown comment in renderBlock):
+	            // Only triggers when the current empty block is the *last* item in its group AND that group
+	            // is itself the last item in its parent scope.
+	            if (scopePath && isEmpty && idx === scopeItems.length - 1) {
+	                const containerPath = scopePath; // the group that contains this block
+	                const parentScopePath = containerPath.length <= 1 ? null : containerPath.slice(0, -1);
+	                const containerIdx = containerPath[containerPath.length - 1];
+	                const parentItems = this._getItemsInScope(parentScopePath);
+	                if (parentItems && containerIdx === parentItems.length - 1) {
+	                    // Remove the empty trailing block from inside the group to avoid leaving a dangling blank.
+	                    scopeItems.splice(idx, 1);
+	                    parentItems.splice(containerIdx + 1, 0, newBlock);
+	                    this._ensureMinimumScript();
+	                    this.save();
+	                    this.render();
+	                    const newPath = parentScopePath ? parentScopePath.concat(containerIdx + 1) : [containerIdx + 1];
+	                    this.focus(newPath);
+	                    return;
+	                }
+	            }
+	
+	            // Default behaviour: insert the next block within the current scope.
+	            scopeItems.splice(idx + 1, 0, newBlock);
+	            this.save();
+	            this.render();
+	            const newPath = scopePath ? scopePath.concat(idx + 1) : [idx + 1];
+	            this.focus(newPath);
+	        }
+	
+	        handleDelete(block, path) {
+	            this.saveToHistory();
+	            const idx = path[path.length - 1];
+	            const scopePath = this._scopePathFromItemPath(path);
+	            const scopeItems = this._getItemsInScope(scopePath);
+	            if (!scopeItems) return;
+	
+	            if (scopeItems.length > 1) {
+	                scopeItems.splice(idx, 1);
+	                this._ensureMinimumScript();
+	                this.save();
+	                this.render();
+	
+	                const candidateIdx = Math.max(0, Math.min(idx - 1, scopeItems.length - 1));
+	                const candidatePath = scopePath ? scopePath.concat(candidateIdx) : [candidateIdx];
+	                const focusPath = this._findLastBlockPathInItem(candidatePath) || this._findFirstBlockPathInItem(candidatePath) || this._findLastBlockPathInDocument();
+	                if (focusPath) this.focus(focusPath);
+	            } else {
+	                // Only item in this scope: keep structure, just clear the text.
+	                block.versions[block.active] = '';
+	                this.save();
+	                this.render();
+	                this.focus(path);
+	            }
+	        }
+	
+	        focus(path) {
+	            setTimeout(() => {
+	                if (!Array.isArray(path) || path.length === 0) return;
+	                const item = this._getItemByPath(path);
+	                let focusPath = path;
+	                if (item && item.isContainer) {
+	                    focusPath = this._findFirstBlockPathInItem(path);
+	                    if (!focusPath) return;
+	                }
+	                const id = this._domIdForInputPath(focusPath);
+	                const el = document.getElementById(id);
+	                if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+	            }, 10);
+	        }
 
-        handleDelete(block, idx, inside, cIdx) {
-            this.saveToHistory();
-            if (inside) {
-                const blocks = this.state[cIdx].versions[this.state[cIdx].active];
-                if (blocks.length > 1) { blocks.splice(idx, 1); this.save(); this.render(); this.focus(true, cIdx, idx - 1); }
-                else { blocks[0].versions[blocks[0].active] = ''; this.save(); this.render(); this.focus(true, cIdx, 0); }
-            } else {
-                if (this.state.length > 1) { this.state.splice(idx, 1); this.save(); this.render(); this.focus(false, null, idx - 1); }
-                else { this.state[0].versions[this.state[0].active] = ''; this.save(); this.render(); this.focus(false, null, 0); }
-            }
-        }
+	        handleWorkspaceClick(e) {
+	            if (!e.target.closest('.type-select-wrapper')) {
+	                document.querySelectorAll('.type-select-menu.open').forEach(m => m.classList.remove('open'));
+	                document.querySelectorAll('.type-select-button.open').forEach(b => b.classList.remove('open'));
+	            }
+	            const target = e.target;
+	            if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON' || target.tagName === 'SELECT' || target.closest('.row') || target.closest('.container-box') || target.closest('#floating-actions') || target.closest('#selection-bar') || target.closest('.type-select-wrapper')) return;
+	            if (this.state.length === 0) { this.state = [this.createBlock('scene', '')]; this.save(); this.render(); this.focus([0]); return; }
+	            const pageRect = this.page.getBoundingClientRect();
+	            const isInsidePage = e.clientX >= pageRect.left && e.clientX <= pageRect.right && e.clientY >= pageRect.top && e.clientY <= pageRect.bottom;
+	            if (isInsidePage) {
+	                const textareas = Array.from(this.page.querySelectorAll('textarea'));
+	                let closest = null, closestDist = Infinity;
+	                for (const ta of textareas) {
+	                    const r = ta.getBoundingClientRect();
+	                    const d = Math.sqrt(Math.pow(e.clientX - (r.left + r.width / 2), 2) + Math.pow(e.clientY - (r.top + r.height / 2), 2));
+	                    if (d < closestDist) { closestDist = d; closest = ta; }
+	                }
+	                if (closest) {
+	                    closest.focus();
+	                    closest.setSelectionRange(closest.value.length, closest.value.length);
+	                    return;
+	                }
+	            }
+	            const last = this._findLastBlockPathInDocument();
+	            if (last) this.focus(last);
+	        }
 
-        focus(inside, cIdx, bIdx) {
-            setTimeout(() => {
-                let id = inside ? `in-c-${cIdx}-b-${Math.max(0,bIdx)}` : `in-row-${Math.max(0,bIdx)}`;
-                const el = document.getElementById(id);
-                if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
-            }, 10);
-        }
-
-        handleWorkspaceClick(e) {
-            if (!e.target.closest('.type-select-wrapper')) {
-                document.querySelectorAll('.type-select-menu.open').forEach(m => m.classList.remove('open'));
-                document.querySelectorAll('.type-select-button.open').forEach(b => b.classList.remove('open'));
-            }
-            const target = e.target;
-            if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON' || target.tagName === 'SELECT' || target.closest('.row') || target.closest('.container-box') || target.closest('#floating-actions') || target.closest('#selection-bar') || target.closest('.type-select-wrapper')) return;
-            if (this.state.length === 0) { this.state = [this.createBlock('scene', '')]; this.save(); this.render(); this.focus(false, null, 0); return; }
-            const pageRect = this.page.getBoundingClientRect();
-            const isInsidePage = e.clientX >= pageRect.left && e.clientX <= pageRect.right && e.clientY >= pageRect.top && e.clientY <= pageRect.bottom;
-            if (isInsidePage) {
-                const allRows = this.page.querySelectorAll('.row');
-                let closestRow = null, closestDist = Infinity;
-                allRows.forEach(row => {
-                    const r = row.getBoundingClientRect();
-                    const d = Math.sqrt(Math.pow(e.clientX - (r.left + r.width/2), 2) + Math.pow(e.clientY - (r.top + r.height/2), 2));
-                    if (d < closestDist) { closestDist = d; closestRow = row; }
-                });
-                if (closestRow) {
-                    const rowId = closestRow.id;
-                    if (rowId.startsWith('c-')) { const m = rowId.match(/^c-(\d+)-b-(\d+)$/); if (m) { this.focus(true, parseInt(m[1]), parseInt(m[2])); return; } }
-                    else if (rowId.startsWith('row-')) { const m = rowId.match(/^row-(\d+)$/); if (m) { this.focus(false, null, parseInt(m[1])); return; } }
-                }
-            }
-            const lastItem = this.state[this.state.length - 1];
-            if (lastItem.isContainer) { const blocks = lastItem.versions[lastItem.active]; if (blocks.length > 0) { this.focus(true, this.state.length - 1, blocks.length - 1); return; } }
-            this.focus(false, null, this.state.length - 1);
-        }
-
-        changeBlockType(newType) {
-            if (this.lastFocusedIndex === null) return;
-            this.saveToHistory();
-            const idx = this.lastFocusedIndex, containerIdx = this.lastFocusedContainerIndex;
-            if (containerIdx !== null) {
-                const blocks = this.state[containerIdx].versions[this.state[containerIdx].active];
-                if (idx < blocks.length) { blocks[idx].type = newType; this.save(); this.render(); this.focus(true, containerIdx, idx); }
-            } else {
-                if (idx < this.state.length && !this.state[idx].isContainer) { this.state[idx].type = newType; this.save(); this.render(); this.focus(false, null, idx); }
-            }
-        }
+	        changeBlockType(newType) {
+	            if (!this.lastFocusedPath) return;
+	            this.saveToHistory();
+	            const item = this._getItemByPath(this.lastFocusedPath);
+	            if (item && !item.isContainer) {
+	                item.type = newType;
+	                this.save();
+	                this.render();
+	                this.focus(this.lastFocusedPath);
+	            }
+	        }
 
         // ------------------------------------------------------------------
         // Version methods — per-block
         // ------------------------------------------------------------------
-        findBlockById(id) {
-            for (let i = 0; i < this.state.length; i++) {
-                if (this.state[i].id === id) return { parent: this.state, idx: i, item: this.state[i] };
-                if (this.state[i].isContainer) {
-                    const blocks = this.state[i].versions[this.state[i].active];
-                    for (let j = 0; j < blocks.length; j++) {
-                        if (blocks[j].id === id) return { parent: blocks, idx: j, item: blocks[j] };
-                    }
-                }
-            }
-            return null;
-        }
+	        findBlockById(id) {
+	            const walk = (items) => {
+	                for (let i = 0; i < items.length; i++) {
+	                    const it = items[i];
+	                    if (!it) continue;
+	                    if (!it.isContainer && it.id === id) return { parent: items, idx: i, item: it };
+	                    if (it.isContainer) {
+	                        const childItems = it.versions[it.active] || [];
+	                        const res = walk(childItems);
+	                        if (res) return res;
+	                    }
+	                }
+	                return null;
+	            };
+	            return walk(this.state);
+	        }
 
         blockVer(id, dir) {
             const res = this.findBlockById(id); if (!res) return;
@@ -1169,34 +1462,79 @@
             res.item.active = res.item.versions.length - 1; this.save(); this.render();
         }
 
-        // ------------------------------------------------------------------
-        // Version methods — containers
-        // ------------------------------------------------------------------
-        containerVer(idx, dir) {
-            const c = this.state[idx]; if (!c) return;
-            this.saveToHistory();
-            let n = c.active + dir;
-            if (n < 0) n = c.versions.length - 1;
-            if (n >= c.versions.length) n = 0;
-            c.active = n; this.save(); this.render();
-        }
-
-        addContainerVer(idx) {
-            const c = this.state[idx]; if (!c) return;
-            this.saveToHistory();
-            const clone = JSON.parse(JSON.stringify(c.versions[c.active]));
-            clone.forEach(b => b.id = Math.random().toString(36).substring(2, 11));
-            c.versions.push(clone); c.active = c.versions.length - 1;
-            this.save(); this.render(); this.saveToHistory(true);
-        }
-
-        ungroup(idx) {
-            if (!confirm("Ungroup?")) return;
-            this.saveToHistory();
-            const c = this.state[idx];
-            this.state.splice(idx, 1, ...c.versions[c.active]);
-            this.save(); this.render();
-        }
+	        // ------------------------------------------------------------------
+	        // Version methods — containers
+	        // ------------------------------------------------------------------
+	        containerVer(path, dir) {
+	            const c = this._getItemByPath(path);
+	            if (!c || !c.isContainer) return;
+	            this.saveToHistory();
+	            let n = c.active + dir;
+	            if (n < 0) n = c.versions.length - 1;
+	            if (n >= c.versions.length) n = 0;
+	            c.active = n;
+	            this.multiSelections = [];
+	            this.selectionScopePath = null;
+	            this.save();
+	            this.render();
+	        }
+	
+	        _regenerateIdsDeep(item) {
+	            if (!item) return;
+	            item.id = Math.random().toString(36).substring(2, 11);
+	            if (item.isContainer && Array.isArray(item.versions)) {
+	                for (const ver of item.versions) {
+	                    if (!Array.isArray(ver)) continue;
+	                    for (const child of ver) this._regenerateIdsDeep(child);
+	                }
+	            }
+	        }
+	
+	        addContainerVer(path) {
+	            const c = this._getItemByPath(path);
+	            if (!c || !c.isContainer) return;
+	            this.saveToHistory();
+	            const clone = JSON.parse(JSON.stringify(c.versions[c.active] || []));
+	            clone.forEach(it => this._regenerateIdsDeep(it));
+	            c.versions.push(clone);
+	            c.active = c.versions.length - 1;
+	            this.multiSelections = [];
+	            this.selectionScopePath = null;
+	            this.save();
+	            this.render();
+	            this.saveToHistory(true);
+	        }
+	
+	        ungroup(path) {
+	            if (!confirm("Ungroup?")) return;
+	            const c = this._getItemByPath(path);
+	            if (!c || !c.isContainer) return;
+	            this.saveToHistory();
+	
+	            const idx = path[path.length - 1];
+	            const parentScopePath = path.length <= 1 ? null : path.slice(0, -1);
+	            const parentItems = this._getItemsInScope(parentScopePath);
+	            if (!parentItems) return;
+	
+	            const contents = c.versions[c.active] || [];
+	            parentItems.splice(idx, 1, ...contents);
+	
+	            this.multiSelections = [];
+	            this.selectionScopePath = null;
+	            this._ensureMinimumScript();
+	            this.save();
+	            this.render();
+	
+	            // Focus a sensible block after ungrouping.
+	            let focusPath = null;
+	            if (contents.length > 0) {
+	                const firstInsertedPath = (parentScopePath ? parentScopePath.concat(idx) : [idx]);
+	                focusPath = this._findFirstBlockPathInItem(firstInsertedPath);
+	            } else {
+	                focusPath = this._findLastBlockPathInDocument();
+	            }
+	            if (focusPath) this.focus(focusPath);
+	        }
 
         handlePaste(e) {
             const isTextArea = e.target.tagName === 'TEXTAREA';
@@ -1243,12 +1581,32 @@
             if (this.history.length > this.maxHistorySize) { this.history.shift(); this.historyIndex--; }
         }
 
-        undo() {
-            if (this.historyIndex > 0) { this.isUndoRedo = true; this.historyIndex--; this.state = JSON.parse(JSON.stringify(this.history[this.historyIndex])); this.save(); this.render(true); }
-        }
-        redo() {
-            if (this.historyIndex < this.history.length - 1) { this.isUndoRedo = true; this.historyIndex++; this.state = JSON.parse(JSON.stringify(this.history[this.historyIndex])); this.save(); this.render(true); }
-        }
+	        undo() {
+	            if (this.historyIndex > 0) {
+	                this.isUndoRedo = true;
+	                this.historyIndex--;
+	                this.state = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+	                this.multiSelections = [];
+	                this.selectionScopePath = null;
+	                this.lastFocusedPath = null;
+	                this.lastFocusedIndexInScope = null;
+	                this.save();
+	                this.render(true);
+	            }
+	        }
+	        redo() {
+	            if (this.historyIndex < this.history.length - 1) {
+	                this.isUndoRedo = true;
+	                this.historyIndex++;
+	                this.state = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+	                this.multiSelections = [];
+	                this.selectionScopePath = null;
+	                this.lastFocusedPath = null;
+	                this.lastFocusedIndexInScope = null;
+	                this.save();
+	                this.render(true);
+	            }
+	        }
 
         clear() { if (confirm('Clear all?')) { this.saveToHistory(); this.state = [this.createBlock('scene')]; this.save(); this.render(); } }
 
@@ -1313,11 +1671,11 @@
             } catch (err) { alert('Error loading file: ' + err.message); }
         }
 
-        async loadPDF(file) {
-            if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js library not loaded.');
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-            const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-            let fullText = '';
+	        async loadPDF(file) {
+	            if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js library not loaded.');
+	            pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+	            const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+	            let fullText = '';
             for (let pn = 1; pn <= pdf.numPages; pn++) {
                 const page = await pdf.getPage(pn), tc = await page.getTextContent();
                 const lines = [];
@@ -1441,35 +1799,363 @@
             } catch(e) { return null; }
         }
 
+        // ====================================================================
+        // PDF EXPORT — pdfmake programmatic layout (replaces window.print)
+        // ====================================================================
+
         exportPDF() {
-            const pageElement = document.getElementById('page');
-            if (!pageElement) { alert('No content to export.'); return; }
-            let pdfTitle = 'Last Draft';
-            if (this.titlePage?.title?.trim()) {
-                pdfTitle = this.titlePage.title.trim().replace(/^["']|["']$/g, '').replace(/[<>:"/\\|?*]/g, '').substring(0, 100) || 'Last Draft';
+            // Show loading state on the Export PDF button
+            const btn = [...document.querySelectorAll('#floating-actions button')].find(b => b.title === 'Export PDF');
+            const origText = btn?.textContent;
+            if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+
+            try {
+                this._ensurePdfMakeReady();
+                const docDef = this._buildDocDefinition();
+
+                let fileName = 'Last Draft.pdf';
+                if (this.titlePage?.title?.trim()) {
+                    const t = this.titlePage.title.trim()
+                        .replace(/^["']|["']$/g, '')
+                        .replace(/[<>:"/\\|?*]/g, '')
+                        .substring(0, 100);
+                    if (t) fileName = t + '.pdf';
+                }
+
+                pdfMake.createPdf(docDef).download(fileName);
+            } catch (err) {
+                console.error('PDF export error:', err);
+                alert('PDF export failed.\n\n' + err.message);
+            } finally {
+                if (btn) { btn.textContent = origText; btn.disabled = false; }
             }
-            const originalTitle = document.title;
-            document.title = pdfTitle;
-            const titlePagePrint = document.getElementById('title-page-print');
-            if (titlePagePrint) {
-                const has = this.titlePage && (this.titlePage.title || this.titlePage.writer || this.titlePage.customAreas?.length > 0);
-                if (has) {
-                    titlePagePrint.innerHTML = `<div class="title-page-content-wrapper">${this.titlePage.title ? `<div class="title-page-title">"${this.escapeHtml(this.titlePage.title)}"</div>` : ''}${this.titlePage.writer ? `<div class="title-page-written-by">Written by</div><div class="title-page-writer">${this.escapeHtml(this.titlePage.writer)}</div>` : ''}${(this.titlePage.customAreas || []).map(a => `<div class="title-page-custom">${this.escapeHtml(a)}</div>`).join('')}</div>`;
-                    titlePagePrint.style.display = 'block';
-                } else titlePagePrint.style.display = 'none';
-            }
-            pageElement.querySelectorAll('.replicator').forEach(rep => {
-                const ta = rep.parentElement.querySelector('textarea');
-                if (ta?.value.trim()) rep.innerHTML = this.parseMarkdown(ta.value);
-            });
-            window.print();
-            // Restore sentinel so auto-height sync works correctly after printing
-            pageElement.querySelectorAll('.replicator').forEach(rep => {
-                if (!rep.innerHTML.endsWith('\u200B')) rep.innerHTML += '\u200B';
-            });
-            setTimeout(() => { document.title = originalTitle; }, 1000);
-            if (titlePagePrint) titlePagePrint.style.display = 'none';
         }
+
+        // ----------------------------------------------------------------
+        // Font wiring — synchronous, no network calls.
+        //
+        // Fonts are supplied via four pre-loaded base64 constants defined
+        // in fonts-base64.js (loaded before this script):
+        //
+        //   FONT_COURIERFINAL_REGULAR_BASE64
+        //   FONT_COURIERFINAL_BOLD_BASE64
+        //   FONT_COURIERARABIC_REGULAR_BASE64
+        //   FONT_COURIERARABIC_BOLD_BASE64
+        //
+        // initPdfMakeFonts() must be called once before any createPdf call.
+        // ----------------------------------------------------------------
+        _ensurePdfMakeReady() {
+            if (this._pdfFontReady) return;
+            if (typeof pdfMake === 'undefined') {
+                throw new Error('pdfmake library not loaded. Please reload the page.');
+            }
+            initPdfMakeFonts();
+            this._pdfFontReady = true;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Arabic / RTL text helpers
+        // ─────────────────────────────────────────────────────────────────────
+
+        // Returns true when the text contains at least one Arabic Unicode char.
+        _isRTLText(text) {
+            return /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text || '');
+        }
+
+        // Strip **bold** / *italic* markdown markers, returning plain text.
+        // Used for Arabic blocks where inline decoration is not supported.
+	        _stripMd(text) {
+	            if (!text) return '';
+	            return text
+	                .replace(/\*\*([^*]+?)\*\*/g, '$1')
+	                .replace(/__([^_]+?)__/g, '$1')
+	                .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '$1')
+	                .replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '$1');
+	        }
+	
+	        // Mixed-script note (Arabic + Latin + numbers):
+	        // pdfmake-rtl handles bidi for typical screenplay lines well. Edge cases
+	        // can still look odd in *any* PDF engine when you glue scripts together
+	        // without separators (e.g. "آدم(Adam)" or "مرحبا...OK"). If something
+	        // ever looks off, adding a space around the Latin token or punctuation
+	        // is the simplest, most portable fix.
+
+	        // ─────────────────────────────────────────────────────────────────────
+	        // PDF RTL strategy (Arabic)
+	        //
+	        // ROOT CAUSE (why Arabic got scrambled before)
+	        // The previous exporter relied on pdfmake's legacy `direction:'rtl'`
+	        // behaviour, which effectively reverses inline arrays. That is not the
+	        // full Unicode Bidirectional Algorithm (UAX #9), and it interacts badly
+	        // with pdfmake's line-wrapping, causing:
+	        // - words to jump between wrapped lines,
+	        // - punctuation to drift,
+	        // - spaces to collapse or disappear.
+	        //
+	        // FIX
+	        // This app now ships with `vendor/pdfmake-rtl.js`, a drop-in pdfmake build
+	        // that performs proper bidi reordering + Arabic shaping during layout.
+	        //
+	        // APP RULES
+	        // - Layout geometry (margins/lineHeight/page numbers) stays unchanged.
+	        // - RTL blocks use the embedded `CourierArabic` font family.
+	        // - We strip inline **bold**/*italic* markers for RTL blocks via _stripMd()
+	        //   (CourierArabic is embedded as regular-only in this project).
+	        // ─────────────────────────────────────────────────────────────────────
+
+        // Parse **bold** and *italic* markdown for LTR (English) blocks into an
+        // array of pdfmake text-run objects.
+        // Paragraph-level font/fontSize are inherited; only bold/italics differ.
+        _parseMdForPdf(text) {
+            if (!text) return [{ text: '' }];
+            const runs = [];
+            const re = /\*\*([^*]+?)\*\*|__([^_]+?)__|(?<!\*)\*([^*\n]+?)\*(?!\*)|(?<!_)_([^_\n]+?)_(?!_)/g;
+            let last = 0, m;
+            while ((m = re.exec(text)) !== null) {
+                if (m.index > last) runs.push({ text: text.slice(last, m.index) });
+                const content = m[1] || m[2] || m[3] || m[4];
+                if (m[1] || m[2]) runs.push({ text: content, bold: true });
+                else               runs.push({ text: content, italics: true });
+                last = re.lastIndex;
+            }
+            if (last < text.length) runs.push({ text: text.slice(last) });
+            return runs.length ? runs : [{ text: text }];
+        }
+
+        // Returns pdfmake margin: [left, spacingBefore, right, 0] in points.
+        // Left/right are swapped for RTL blocks to mirror the LTR geometry.
+        // 1 inch = 72 points throughout.
+        _getBlockMargins(type, isRTL) {
+            const T = 72;
+            // LTR margins: [leftIndent, spacingBefore, rightIndent, 0]
+            const LTR = {
+                scene:         [0.59*T,  25, 0.39*T, 0],
+                action:        [0.59*T,  12, 0.39*T, 0],
+                character:     [3.00*T,  13, 0.38*T, 0],
+                dialogue:      [1.61*T,   0, 1.70*T, 0],
+                parenthetical: [2.06*T,   0, 2.46*T, 0],
+                transition:    [4.53*T,  12, 0.28*T, 0],
+            };
+            // RTL mirrors left↔right
+            const RTL = {
+                scene:         [0.39*T,  25, 0.59*T, 0],
+                action:        [0.39*T,  12, 0.59*T, 0],
+                character:     [0.38*T,  13, 3.00*T, 0],
+                dialogue:      [1.70*T,   0, 1.61*T, 0],
+                parenthetical: [2.46*T,   0, 2.06*T, 0],
+                transition:    [0.28*T,  12, 4.53*T, 0],
+            };
+            return (isRTL ? RTL : LTR)[type] || LTR.action;
+        }
+
+        // Convert a single screenplay block to a pdfmake paragraph object.
+        _blockToPdfContent(block) {
+            const raw   = block.versions[block.active] || '';
+            const isRTL = this._isRTLText(raw);
+            const type  = block.type;
+
+            // Font selection:
+            //   Arabic / RTL content → CourierArabic
+            //   English / LTR content → CourierFinalDraft
+            const fontName = isRTL ? 'CourierArabic' : 'CourierFinalDraft';
+
+            // Line-height ratios relative to 12pt font (spec: exact Xpt)
+            const LINE_HEIGHT = {
+                scene:         13   / 12,   // 13pt exact
+                action:        12.3 / 12,   // 12.3pt exact
+                character:     12   / 12,   // 12pt exact
+                dialogue:      12.3 / 12,
+                parenthetical: 12   / 12,
+                transition:    13   / 12,
+            };
+
+            // Apply uppercase where required.
+            // toUpperCase() on Arabic text is a no-op — correct behaviour.
+            let display = raw;
+            if (type === 'scene' || type === 'character' || type === 'transition') {
+                display = display.toUpperCase();
+            }
+
+            // Paragraph alignment
+            // LTR : transition → right  |  everything else → left
+            // RTL : transition → left (mirrored)  |  everything else → right
+            let alignment;
+            if (type === 'transition') {
+                alignment = isRTL ? 'left' : 'right';
+            } else {
+                alignment = isRTL ? 'right' : 'left';
+            }
+
+            const margin = this._getBlockMargins(type, isRTL);
+
+            // ── Build pdfmake `text` value ──────────────────────────────────
+            //
+	            // RTL (Arabic): keep as a single logical string (pdfmake-rtl handles bidi/shaping).
+	            // LTR (English): standard markdown run array, bold/italic preserved.
+	            let textValue;
+	            if (isRTL) {
+	                textValue = this._stripMd(display);
+	            } else {
+	                const ltrRuns = this._parseMdForPdf(display);
+	                textValue = (ltrRuns.length === 1 && !ltrRuns[0].bold && !ltrRuns[0].italics)
+	                    ? display
+	                    : ltrRuns;
+	            }
+
+            const para = {
+                text:      textValue,
+                font:      fontName,
+                fontSize:  12,
+                color:     'black',
+                margin,
+                lineHeight: LINE_HEIGHT[type] || 1,
+	                alignment,
+	                preserveLeadingSpaces: true,
+	            };
+
+	            // Scene headings: underline
+	            if (type === 'scene') para.decoration = 'underline';
+
+            return para;
+        }
+
+	        // Flatten state: recursively expand containers to their active-version blocks
+	        _flattenBlocks(state) {
+	            const out = [];
+	            const walk = (items) => {
+	                for (const item of (items || [])) {
+	                    if (!item) continue;
+	                    if (item.isContainer) walk(item.versions?.[item.active] || []);
+	                    else out.push(item);
+	                }
+	            };
+	            walk(state);
+	            return out;
+	        }
+
+        // Build the complete pdfmake docDefinition from state + titlePage
+        _buildDocDefinition() {
+            const T = 72; // 1 inch in points
+
+            const hasTp = this.titlePage && (
+                this.titlePage.title?.trim() ||
+                this.titlePage.writer?.trim() ||
+                (this.titlePage.customAreas || []).some(a => a?.trim())
+            );
+
+            const content = [];
+
+            // ----------------------------------------------------------------
+            // Title page (occupies page 1 of the PDF)
+            // ----------------------------------------------------------------
+            if (hasTp) {
+                const tp = this.titlePage;
+
+                // Vertical spacer: push content down to ~3.5in from the top margin
+                content.push({ text: ' ', fontSize: 12, margin: [0, 3.5 * T - 12, 0, 0] });
+
+	                if (tp.title?.trim()) {
+	                    const titleText = tp.title.trim();
+	                    const titleIsRTL = this._isRTLText(titleText);
+	                    const titleDisplay = `"${titleText}"`;
+	                    const titlePara = {
+	                        text: titleIsRTL ? this._stripMd(titleDisplay) : titleDisplay,
+	                        font: titleIsRTL ? 'CourierArabic' : 'CourierFinalDraft',
+	                        fontSize: 12,
+	                        alignment: 'center',
+	                        margin: [0, 0, 0, Math.round(0.4 * T)],
+	                        lineHeight: 13 / 12,
+	                    };
+	                    content.push(titlePara);
+	                }
+
+                if (tp.writer?.trim()) {
+                    const writerText = tp.writer.trim();
+                    const writerIsRTL = this._isRTLText(writerText);
+                    content.push({
+                        text: 'Written by',
+                        font: 'CourierFinalDraft', fontSize: 12,
+                        alignment: 'center',
+                        margin: [0, 0, 0, Math.round(0.2 * T)],
+                        lineHeight: 13 / 12,
+                    });
+	                    const writerPara = {
+	                        text: writerIsRTL ? this._stripMd(writerText) : writerText,
+	                        font: writerIsRTL ? 'CourierArabic' : 'CourierFinalDraft',
+	                        fontSize: 12,
+	                        alignment: 'center',
+	                        margin: [0, 0, 0, Math.round(0.4 * T)],
+	                        lineHeight: 13 / 12,
+	                    };
+	                    content.push(writerPara);
+	                }
+
+                for (const area of (tp.customAreas || [])) {
+	                    if (area?.trim()) {
+	                        const areaIsRTL = this._isRTLText(area);
+	                        const areaPara = {
+	                            text: areaIsRTL ? this._stripMd(area.trim()) : area.trim(),
+	                            font: areaIsRTL ? 'CourierArabic' : 'CourierFinalDraft',
+	                            fontSize: 12,
+	                            alignment: 'center',
+	                            margin: [0, Math.round(0.2 * T), 0, Math.round(0.2 * T)],
+	                            lineHeight: 13 / 12,
+	                        };
+	                        content.push(areaPara);
+	                    }
+	                }
+
+                // Force a page break after the title page
+                content.push({ text: '', pageBreak: 'after' });
+            }
+
+            // ----------------------------------------------------------------
+            // Script body: every flattened block → pdfmake paragraph
+            // ----------------------------------------------------------------
+            const blocks = this._flattenBlocks(this.state);
+            for (const block of blocks) {
+                content.push(this._blockToPdfContent(block));
+            }
+
+            // ----------------------------------------------------------------
+            // docDefinition
+            // ----------------------------------------------------------------
+            return {
+                pageSize:    'A4',
+                // Margins: [left, top, right, bottom] — all in points
+                // left/right = 0.5in = 36pt; top/bottom = 0.945in ≈ 68.04pt
+                pageMargins: [0.5 * T, 0.945 * T, 0.5 * T, 0.945 * T],
+
+                // ---- Page header: page numbers "N." right-aligned ----
+                // Suppressed on page 1 (title page, or first script page if no title page).
+                // If a title page is present the displayed number is offset by 1 so that
+                // the first script page shows "1." regardless of its PDF page index.
+                header: (currentPage) => {
+                    if (currentPage === 1) return null; // no number on first page
+                    const displayNum = hasTp ? currentPage - 1 : currentPage;
+                    return {
+                        text:      displayNum + '.',
+                        font:      'CourierFinalDraft',
+                        fontSize:  12,
+                        color:     'black',
+                        alignment: 'right',
+                        margin: [0, Math.round(0.5 * T - 10), 0.5 * T, 0],
+                    };
+                },
+
+                defaultStyle: {
+                    font:     'CourierFinalDraft',
+                    fontSize: 12,
+                    color:    'black',
+                },
+
+                content,
+            };
+        }
+
+        // ====================================================================
+        // END PDF EXPORT
+        // ====================================================================
 
         escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
 
@@ -1487,29 +2173,55 @@
             if (btn) { const light = document.body.classList.contains('light-mode'); btn.textContent = light ? '◐' : '◑'; btn.title = light ? 'Switch to Dark Mode' : 'Switch to Light Mode'; }
         }
 
-        // Scene map is built from state, not the DOM.
-        // blockId is the stable UUID; DOM id ("row-N") is only used for scroll/jump.
-        buildSceneMap() {
-            this.scenes = [];
-            for (let i = 0; i < this.state.length; i++) {
-                const item = this.state[i];
-                if (item.isContainer || item.type !== 'scene') continue;
-                const label = item.versions[item.active] || '';
-                let content = label;
-                for (let j = i + 1; j < this.state.length; j++) {
-                    const next = this.state[j];
-                    if (!next.isContainer && next.type === 'scene') break;
-                    if (!next.isContainer) content += ' ' + (next.versions[next.active] || '');
-                    else { const cb = next.versions[next.active]; if (Array.isArray(cb)) cb.forEach(b => content += ' ' + (b.versions[b.active] || '')); }
-                }
-                this.scenes.push({ id: 'row-' + i, blockId: item.id, label, content: content.toLowerCase(), index: this.scenes.length + 1 });
-            }
-            this.renderSceneMap();
-        }
+	        buildSceneMap() {
+	            // Scene map includes every scene block, even if nested inside groups.
+	            // We traverse the active version of each container recursively in document order.
+	            const flat = [];
+	            const walk = (items, basePath) => {
+	                for (let i = 0; i < (items || []).length; i++) {
+	                    const it = items[i];
+	                    if (!it) continue;
+	                    const p = basePath.concat(i);
+	                    if (it.isContainer) walk(it.versions?.[it.active] || [], p);
+	                    else flat.push({ block: it, path: p });
+	                }
+	            };
+	            walk(this.state, []);
+	
+	            this.scenes = [];
+	            let current = null;
+	
+	            const rowIdForPath = (path) => {
+	                if (path.length === 1) return `row-${path[0]}`;
+	                return `row-p-${path.join('-')}`;
+	            };
+	
+	            for (const { block, path } of flat) {
+	                const text = (block.versions?.[block.active] || '');
+	                if (block.type === 'scene') {
+	                    if (current) current.content = (current.content || '').toLowerCase();
+	                    current = {
+	                        id: rowIdForPath(path),
+	                        blockId: block.id,
+	                        label: text,
+	                        content: text,
+	                        index: 0,
+	                        topLevel: path.length === 1,
+	                    };
+	                    this.scenes.push(current);
+	                } else if (current) {
+	                    if (text) current.content += ' ' + text;
+	                }
+	            }
+	            if (current) current.content = (current.content || '').toLowerCase();
+	            this.scenes.forEach((s, i) => s.index = i + 1);
+	
+	            this.renderSceneMap();
+	        }
 
-        renderSceneMap(filterText = '') {
-            const sceneList = document.getElementById('scene-list');
-            if (!sceneList) return;
+	        renderSceneMap(filterText = '') {
+	            const sceneList = document.getElementById('scene-list');
+	            if (!sceneList) return;
             const header = document.querySelector('.scene-map-header');
             if (header) { const n = this.scenes.length; header.textContent = n === 1 ? '1 SCENE' : n > 1 ? `${n} SCENES` : 'SCENES'; }
             sceneList.innerHTML = '';
@@ -1518,38 +2230,45 @@
             this.clearSearchHighlights();
             if (filter) this.highlightSearchTerm(filter);
 
-            filtered.forEach(scene => {
-                const item = document.createElement('div');
-                item.className = 'scene-item';
-                item.dataset.sceneBlockId = scene.blockId; // stable UUID for drag/drop
+	            filtered.forEach(scene => {
+	                const item = document.createElement('div');
+	                item.className = 'scene-item';
+	                item.dataset.sceneTopLevel = scene.topLevel ? '1' : '0';
+	                if (scene.topLevel) item.dataset.sceneBlockId = scene.blockId;
 
-                const handle = document.createElement('div');
-                handle.className = 'scene-drag-handle';
-                handle.textContent = '☰';
-                handle.draggable = true;
-                handle.contentEditable = false;
+	                const handle = document.createElement('div');
+	                handle.className = 'scene-drag-handle';
+	                handle.textContent = '☰';
+	                handle.draggable = !!scene.topLevel;
+	                if (!scene.topLevel) {
+	                    handle.classList.add('disabled');
+	                    handle.title = 'This scene is inside a group. Ungroup first to reorder from the scene map.';
+	                }
+	                handle.contentEditable = false;
 
-                handle.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', scene.blockId);
-                    item.classList.add('dragging');
-                    this.draggedSceneBlockId = scene.blockId;
-                    this.dropOccurred = false;
-                }, false);
+	                if (scene.topLevel) {
+	                    handle.addEventListener('dragstart', (e) => {
+	                        e.dataTransfer.effectAllowed = 'move';
+	                        e.dataTransfer.setData('text/plain', scene.blockId);
+	                        item.classList.add('dragging');
+	                        this.draggedSceneBlockId = scene.blockId;
+	                        this.dropOccurred = false;
+	                    }, false);
 
-                handle.addEventListener('dragend', () => {
-                    item.classList.remove('dragging');
-                    if (this.dragOverFrame) {
-                        cancelAnimationFrame(this.dragOverFrame);
-                        this.dragOverFrame = null;
-                    }
-                    this._clearDragVisuals();
-                    if (!this.dropOccurred) {
-                        setTimeout(() => { if (this.draggedSceneBlockId === scene.blockId) this.draggedSceneBlockId = null; }, 100);
-                    }
-                }, false);
+	                    handle.addEventListener('dragend', () => {
+	                        item.classList.remove('dragging');
+	                        if (this.dragOverFrame) {
+	                            cancelAnimationFrame(this.dragOverFrame);
+	                            this.dragOverFrame = null;
+	                        }
+	                        this._clearDragVisuals();
+	                        if (!this.dropOccurred) {
+	                            setTimeout(() => { if (this.draggedSceneBlockId === scene.blockId) this.draggedSceneBlockId = null; }, 100);
+	                        }
+	                    }, false);
+	                }
 
-                handle.addEventListener('click', (e) => e.stopPropagation(), false);
+	                handle.addEventListener('click', (e) => e.stopPropagation(), false);
 
                 const content = document.createElement('span');
                 content.className = 'scene-item-content';
@@ -1606,9 +2325,6 @@
 
         // ====================================================================
         // DRAG & DROP
-        // _clearDragVisuals() is the single place that removes all drag-related
-        // visual state. Called from both the drop handler and dragend, always
-        // AFTER cancelAnimationFrame so no pending rAF can re-add them.
         // ====================================================================
         _clearDragVisuals() {
             const di = document.getElementById('drop-indicator');
@@ -1648,13 +2364,14 @@
                     const overSceneMap = sceneMap && sceneMap.contains(e.target);
                     let dropY = e.clientY, dropX = 0, dropWidth = 0;
 
-                    if (overSceneMap && sceneList) {
-                        const items = Array.from(sceneList.querySelectorAll('.scene-item'));
-                        let closest = null, minDist = Infinity;
-                        for (const si of items) {
-                            const r = si.getBoundingClientRect(), d = Math.abs(e.clientY - (r.top + r.height / 2));
-                            if (d < minDist) { minDist = d; closest = si; }
-                        }
+	                    if (overSceneMap && sceneList) {
+	                        // Only top-level scenes participate in drag/drop reorder from the scene map.
+	                        const items = Array.from(sceneList.querySelectorAll('.scene-item[data-scene-top-level="1"]'));
+	                        let closest = null, minDist = Infinity;
+	                        for (const si of items) {
+	                            const r = si.getBoundingClientRect(), d = Math.abs(e.clientY - (r.top + r.height / 2));
+	                            if (d < minDist) { minDist = d; closest = si; }
+	                        }
                         if (closest) {
                             const r = closest.getBoundingClientRect();
                             dropY = e.clientY < r.top + r.height / 2 ? r.top : r.bottom;
@@ -1662,7 +2379,8 @@
                         const smr = sceneMap.getBoundingClientRect();
                         dropX = smr.left; dropWidth = smr.width;
                     } else {
-                        const sceneRows = Array.from(this.page.querySelectorAll('.row.scene'));
+	                        const sceneRows = Array.from(this.page.querySelectorAll('.row.scene'))
+	                            .filter(r => /^row-\d+$/.test(r.id)); // ignore nested rows (row-p-...) when groups are nested
                         let closestRow = null, minDist = Infinity;
                         for (const row of sceneRows) {
                             const r = row.getBoundingClientRect(), d = Math.abs(e.clientY - (r.top + r.height / 2));
@@ -1702,20 +2420,22 @@
                 let toBlockId = null, insertBefore = true;
                 const inSceneMap = sceneMap && sceneMap.contains(e.target);
 
-                if (inSceneMap && sceneList) {
-                    const items = Array.from(sceneList.querySelectorAll('.scene-item'));
-                    let closest = null, minDist = Infinity;
-                    for (const si of items) {
-                        const r = si.getBoundingClientRect(), d = Math.abs(e.clientY - (r.top + r.height / 2));
-                        if (d < minDist) { minDist = d; closest = si; }
-                    }
+	                if (inSceneMap && sceneList) {
+	                    // Only top-level scenes are valid drop targets in the scene map.
+	                    const items = Array.from(sceneList.querySelectorAll('.scene-item[data-scene-top-level="1"]'));
+	                    let closest = null, minDist = Infinity;
+	                    for (const si of items) {
+	                        const r = si.getBoundingClientRect(), d = Math.abs(e.clientY - (r.top + r.height / 2));
+	                        if (d < minDist) { minDist = d; closest = si; }
+	                    }
                     if (closest && minDist < 150) {
                         toBlockId    = closest.dataset.sceneBlockId;
                         const r      = closest.getBoundingClientRect();
                         insertBefore = e.clientY < r.top + r.height / 2;
                     }
                 } else {
-                    const sceneRows = Array.from(this.page.querySelectorAll('.row.scene'));
+	                    const sceneRows = Array.from(this.page.querySelectorAll('.row.scene'))
+	                        .filter(r => /^row-\d+$/.test(r.id)); // ignore nested rows (row-p-...) when groups are nested
                     let closestRow = null, minDist = Infinity;
                     for (const row of sceneRows) {
                         const r = row.getBoundingClientRect(), d = Math.abs(e.clientY - (r.top + r.height / 2));
@@ -1766,8 +2486,6 @@
             return group;
         }
 
-        // All parameters are stable UUIDs — array indices are resolved at call time,
-        // so they are always current regardless of edits or undo/redo since drag-start.
         moveScene(fromBlockId, toBlockId, insertBefore) {
             const fromIndex = this.state.findIndex(b => !b.isContainer && b.id === fromBlockId);
             if (fromIndex === -1 || this.state[fromIndex].type !== 'scene') return;
@@ -1865,7 +2583,9 @@
         }
     }
 
-    const app = new Engine();
-</script>
+	    // IMPORTANT: expose `app` on window because many UI handlers are inline HTML
+	    // attributes (onclick="app.exportPDF()", etc.) and must resolve via window.
+	    const app = window.app = new Engine();
+	</script>
 </body>
 </html>
