@@ -594,32 +594,141 @@
 	         4) fonts-base64.js (FONT_*_BASE64 constants used by initPdfMakeFonts())
 	         5) This file’s inline app script (defines Engine, exportPDF(), etc.)
 	
+	         Note: deps load asynchronously via `window.__lastdraftDepsReady` and are awaited on-demand
+	         in export/import paths so the UI can boot immediately without blocking.
+	
 	         Hosting note:
 	         - When opened from file:// we load local `vendor/*` so the app works fully offline.
 	         - When hosted over http(s) we default to CDN to avoid 404s if `vendor/` isn't deployed.
 	           You can force local vendor assets on a server by adding `?localVendor=1`. -->
 	    <script>
 	        (function () {
+	            // Dynamic dependency loader:
+	            // - file://   → always load local `vendor/*` (fully offline)
+	            // - http(s)   → prefer CDN to avoid 404s when `vendor/` isn't deployed
+	            // - http(s) + ?localVendor=1 → force local `vendor/*`
+	            //
+	            // This exposes a single promise: `window.__lastdraftDepsReady`.
 	            const params = new URLSearchParams(location.search);
-	            const forceLocal = params.has('localVendor');
-	            const useLocal = forceLocal || location.protocol === 'file:';
-	
-	            const write = (src) => document.write(`<script src="${src}"><\\/script>`);
-	
-	            const pdfjsCdn = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-	            const pdfjsWorkerCdn = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-	            const jszipCdn = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-	            const pdfmakeRtlCdn = 'https://unpkg.com/pdfmake-rtl@2.1.2/build/pdfmake.js';
-	
-	            const pdfjsSrc = useLocal ? 'vendor/pdf.min.js' : pdfjsCdn;
-	            const jszipSrc = useLocal ? 'vendor/jszip.min.js' : jszipCdn;
-	            const pdfmakeSrc = useLocal ? 'vendor/pdfmake-rtl.js' : pdfmakeRtlCdn;
-	
-	            window.__pdfjsWorkerSrc = useLocal ? 'vendor/pdf.worker.min.js' : pdfjsWorkerCdn;
-	
-	            write(pdfjsSrc);
-	            write(jszipSrc);
-	            write(pdfmakeSrc);
+	            const forceLocal = ['1', 'true', 'yes', 'on'].includes((params.get('localVendor') || '').toLowerCase());
+	            const isFile = location.protocol === 'file:';
+
+	            const CDN = {
+	                pdfjs:        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js',
+	                pdfjsWorker:  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js',
+	                jszip:        'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+	                pdfmakeRtl: [
+	                    'https://unpkg.com/pdfmake-rtl@2.1.2/build/pdfmake.js',
+	                    'https://cdn.jsdelivr.net/npm/pdfmake-rtl@2.1.2/build/pdfmake.js',
+	                ],
+	            };
+
+	            const LOCAL = {
+	                pdfjs:       'vendor/pdf.min.js',
+	                pdfjsWorker: 'vendor/pdf.worker.min.js',
+	                jszip:       'vendor/jszip.min.js',
+	                pdfmakeRtl:  'vendor/pdfmake-rtl.js',
+	            };
+
+	            const urlExists = async (url) => {
+	                // Avoid noisy 404 console errors by probing existence via fetch before injecting <script>.
+	                if (!/^https?:$/.test(location.protocol)) return false;
+	                try {
+	                    const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+	                    // Some servers don't support HEAD (405). In that case, we conservatively assume missing.
+	                    return res.ok;
+	                } catch {
+	                    return false;
+	                }
+	            };
+
+	            const loadScript = (src, timeoutMs = 20000) => new Promise((resolve, reject) => {
+	                const s = document.createElement('script');
+	                s.src = src;
+	                s.async = false; // preserve order
+	                const t = setTimeout(() => {
+	                    s.onload = s.onerror = null;
+	                    reject(new Error('Timed out loading ' + src));
+	                }, timeoutMs);
+	                s.onload = () => { clearTimeout(t); resolve(src); };
+	                s.onerror = () => { clearTimeout(t); reject(new Error('Failed to load ' + src)); };
+	                document.head.appendChild(s);
+	            });
+
+	            const loadFirstAvailable = async (label, candidates, isReadyFn) => {
+	                const errs = [];
+	                for (const src of candidates) {
+	                    try {
+	                        await loadScript(src);
+	                        if (!isReadyFn || isReadyFn()) return src;
+	                        errs.push(new Error(`${label} loaded but did not expose expected global (${src})`));
+	                    } catch (e) {
+	                        errs.push(e);
+	                    }
+	                }
+	                const msg = errs.map(e => e?.message || String(e)).join('\n');
+	                throw new Error(`${label} failed to load.\n` + msg);
+	            };
+
+	            window.__lastdraftDepsReady = (async () => {
+	                const chosen = { pdfjs: null, jszip: null, pdfmake: null };
+	                const errors = { pdfjs: null, jszip: null, pdfmake: null };
+
+	                // Decide local vs CDN on http(s) without triggering 404s.
+	                // We probe each local asset individually; if HEAD isn't supported we fall back to CDN.
+	                let localOk = { pdfjs: false, jszip: false, pdfmake: false, worker: false };
+	                if (/^https?:$/.test(location.protocol)) {
+	                    localOk = {
+	                        pdfjs:   await urlExists(LOCAL.pdfjs),
+	                        jszip:   await urlExists(LOCAL.jszip),
+	                        pdfmake: await urlExists(LOCAL.pdfmakeRtl),
+	                        worker:  await urlExists(LOCAL.pdfjsWorker),
+	                    };
+	                }
+
+	                const preferLocalPdfjs = isFile || forceLocal || localOk.pdfjs;
+	                const preferLocalJszip = isFile || forceLocal || localOk.jszip;
+	                const preferLocalPdfmake = isFile || forceLocal || localOk.pdfmake;
+
+	                const pdfjsCandidates = preferLocalPdfjs ? [LOCAL.pdfjs, CDN.pdfjs] : [CDN.pdfjs, LOCAL.pdfjs];
+	                const jszipCandidates = preferLocalJszip ? [LOCAL.jszip, CDN.jszip] : [CDN.jszip, LOCAL.jszip];
+
+	                // PDF.js worker is configured via `window.__pdfjsWorkerSrc` (used in loadPDF()).
+	                window.__pdfjsWorkerSrc = (isFile || forceLocal || localOk.worker) ? LOCAL.pdfjsWorker : CDN.pdfjsWorker;
+
+	                // Kick off optional deps in the background so PDF export isn't blocked.
+	                window.__lastdraftPdfjsReady = (async () => {
+	                    if (typeof window.pdfjsLib !== 'undefined') return chosen.pdfjs;
+	                    chosen.pdfjs = await loadFirstAvailable('PDF.js', pdfjsCandidates, () => typeof window.pdfjsLib !== 'undefined');
+	                    return chosen.pdfjs;
+	                })().catch((e) => { errors.pdfjs = e; return null; });
+
+	                window.__lastdraftJsZipReady = (async () => {
+	                    if (typeof window.JSZip !== 'undefined') return chosen.jszip;
+	                    chosen.jszip = await loadFirstAvailable('JSZip', jszipCandidates, () => typeof window.JSZip !== 'undefined');
+	                    return chosen.jszip;
+	                })().catch((e) => { errors.jszip = e; return null; });
+
+	                // Load pdfmake-rtl (required for PDF export).
+	                window.__lastdraftPdfMakeReady = (async () => {
+	                    if (typeof window.pdfMake !== 'undefined') return chosen.pdfmake;
+	                    const pdfmakeCandidates = preferLocalPdfmake
+	                        ? [LOCAL.pdfmakeRtl, ...CDN.pdfmakeRtl]
+	                        : [...CDN.pdfmakeRtl, LOCAL.pdfmakeRtl];
+	                    chosen.pdfmake = await loadFirstAvailable('pdfmake-rtl', pdfmakeCandidates, () => typeof window.pdfMake !== 'undefined');
+	                    return chosen.pdfmake;
+	                })().catch((e) => {
+	                    errors.pdfmake = e;
+	                    throw e;
+	                });
+
+	                // For historical callers: `__lastdraftDepsReady` resolves once pdfmake is ready.
+	                await window.__lastdraftPdfMakeReady;
+
+	                window.__lastdraftDepsChosen = chosen;
+	                window.__lastdraftDepsErrors = errors;
+	                return chosen;
+	            })();
 	        })();
 	    </script>
 	    <!-- Base64 font constants: FONT_COURIERFINAL_REGULAR_BASE64, FONT_COURIERFINAL_BOLD_BASE64,
@@ -841,6 +950,39 @@
             }
         }
 
+        // -------------------------------------------------------------------
+        // Undo/redo reliability helpers
+        //
+        // Textareas save "after" snapshots on a debounce timer (pauseDetectionDelay).
+        // Any structural edit (grouping, delete, move scene, version switches, etc.)
+        // must:
+        //   1) cancel pending timers and checkpoint the latest text into history
+        //   2) apply the mutation
+        //   3) commit the new state into history
+        // This keeps undo/redo stable and prevents stale timers from corrupting history.
+        // -------------------------------------------------------------------
+        _clearAllInputDebounceTimers() {
+            for (const t of this.inputDebounceTimers.values()) clearTimeout(t);
+            this.inputDebounceTimers.clear();
+        }
+
+        _checkpointHistory() {
+            this._clearAllInputDebounceTimers();
+            this.saveToHistory();
+        }
+
+        _commitHistory() {
+            this.save();
+            this.render();
+            this.saveToHistory();
+        }
+
+        _resetHistoryToCurrentState() {
+            this._clearAllInputDebounceTimers();
+            this.history = [JSON.parse(JSON.stringify(this.state))];
+            this.historyIndex = 0;
+        }
+
         createBlock(type, text = '') {
             return { id: Math.random().toString(36).substring(2, 11), isContainer: false, type, versions: [text], active: 0 };
         }
@@ -1031,7 +1173,14 @@
 	                option.className = 'type-select-option';
 	                if (t === block.type) option.classList.add('active');
 	                option.textContent = t.toUpperCase().substring(0,4);
-	                option.onclick = (e) => { e.stopPropagation(); e.preventDefault(); this.saveToHistory(); block.type = t; this.save(); this.render(); this.focus(path); };
+	                option.onclick = (e) => {
+	                    e.stopPropagation();
+	                    e.preventDefault();
+	                    this._checkpointHistory();
+	                    block.type = t;
+	                    this._commitHistory();
+	                    this.focus(path);
+	                };
 	                option.onmousedown = (e) => { e.stopPropagation(); e.preventDefault(); };
 	                selectMenu.appendChild(option);
 	            });
@@ -1176,7 +1325,12 @@
 	            if (activeItems.length === 0) {
 	                const empty = document.createElement('div');
 	                empty.innerText = "(Empty Group - Click to Add)"; empty.style.color = "#555"; empty.style.fontSize = "12px"; empty.style.cursor = "pointer";
-		                empty.onclick = () => { activeItems.push(this.createBlock('action')); this.save(); this.render(); this.focus(path.concat(0)); };
+		                empty.onclick = () => {
+		                    this._checkpointHistory();
+		                    activeItems.push(this.createBlock('action'));
+		                    this._commitHistory();
+		                    this.focus(path.concat(0));
+		                };
 	                box.appendChild(empty);
 	            } else {
 	                activeItems.forEach((child, childIdx) => box.appendChild(this._renderItem(child, path.concat(childIdx))));
@@ -1235,7 +1389,7 @@
 	            const selected = Array.from(new Set(this.multiSelections)).filter(i => i >= 0 && i < scopeItems.length).sort((a, b) => a - b);
 	            const itemsToGroup = selected.map(i => scopeItems[i]).filter(Boolean);
 	            if (itemsToGroup.some(it => it.isContainer)) { alert("Cannot group existing groups."); return; }
-	            this.saveToHistory();
+	            this._checkpointHistory();
 	
 	            // Remove selected indices from the scope (descending), preserving original order.
 	            const extracted = [];
@@ -1248,9 +1402,7 @@
 	            scopeItems.splice(insertAt, 0, newContainer);
 	
 	            this.multiSelections = [];
-	            this.save();
-	            this.render();
-	            this.history[this.historyIndex] = JSON.parse(JSON.stringify(this.state));
+	            this._commitHistory();
 	
 	            // Focus the first block inside the new group (if any).
 	            const newContainerPath = scopePath ? scopePath.concat(insertAt) : [insertAt];
@@ -1260,7 +1412,7 @@
 
 	        bulkDelete() {
 	            if (this.multiSelections.length === 0) return;
-	            this.saveToHistory();
+	            this._checkpointHistory();
 	            const scopePath = this.selectionScopePath;
 	            const scopeItems = this._getItemsInScope(scopePath);
 	            if (!scopeItems) return;
@@ -1275,8 +1427,7 @@
 	
 	            this.multiSelections = [];
 	            this._ensureMinimumScript();
-	            this.save();
-	            this.render();
+	            this._commitHistory();
 	
 	            // Focus a nearby block in the same scope if possible; otherwise fall back to last block.
 	            const remaining = this._getItemsInScope(scopePath) || [];
@@ -1306,11 +1457,12 @@
             }
         }
 
-        wrapSelectionWithFormatting(textarea, prefix, suffix) {
-            const start = textarea.selectionStart, end = textarea.selectionEnd, sel = textarea.value.substring(start, end);
-            if (sel.length === 0) {
-                textarea.value = textarea.value.substring(0, start) + prefix + suffix + textarea.value.substring(end);
-                textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+	        wrapSelectionWithFormatting(textarea, prefix, suffix) {
+	            this._checkpointHistory();
+	            const start = textarea.selectionStart, end = textarea.selectionEnd, sel = textarea.value.substring(start, end);
+	            if (sel.length === 0) {
+	                textarea.value = textarea.value.substring(0, start) + prefix + suffix + textarea.value.substring(end);
+	                textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
             } else {
                 const alreadyWrapped = textarea.value.substring(Math.max(0, start - prefix.length), start) === prefix && textarea.value.substring(end, Math.min(textarea.value.length, end + suffix.length)) === suffix;
                 if (alreadyWrapped) {
@@ -1318,11 +1470,12 @@
                     textarea.selectionStart = start - prefix.length; textarea.selectionEnd = end - prefix.length;
                 } else {
                     textarea.value = textarea.value.substring(0, start) + prefix + sel + suffix + textarea.value.substring(end);
-                    textarea.selectionStart = start; textarea.selectionEnd = start + prefix.length + sel.length + suffix.length;
-                }
-            }
-            textarea.dispatchEvent(new Event('input', { bubbles: true })); this.saveToHistory();
-        }
+	                    textarea.selectionStart = start; textarea.selectionEnd = start + prefix.length + sel.length + suffix.length;
+	                }
+	            }
+	            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+	            this.saveToHistory();
+	        }
 
         parseMarkdown(text) {
             if (!text) return '';
@@ -1333,7 +1486,7 @@
         }
 
 	        handleEnter(block, path) {
-	            this.saveToHistory();
+	            this._checkpointHistory();
 	            let next = 'action';
 	            if (block.type === 'character') next = 'dialogue';
 	            if (block.type === 'parenthetical') next = 'dialogue';
@@ -1361,8 +1514,7 @@
 	                    scopeItems.splice(idx, 1);
 	                    parentItems.splice(containerIdx + 1, 0, newBlock);
 	                    this._ensureMinimumScript();
-	                    this.save();
-	                    this.render();
+	                    this._commitHistory();
 	                    const newPath = parentScopePath ? parentScopePath.concat(containerIdx + 1) : [containerIdx + 1];
 	                    this.focus(newPath);
 	                    return;
@@ -1371,14 +1523,13 @@
 	
 	            // Default behaviour: insert the next block within the current scope.
 	            scopeItems.splice(idx + 1, 0, newBlock);
-	            this.save();
-	            this.render();
+	            this._commitHistory();
 	            const newPath = scopePath ? scopePath.concat(idx + 1) : [idx + 1];
 	            this.focus(newPath);
 	        }
 	
 	        handleDelete(block, path) {
-	            this.saveToHistory();
+	            this._checkpointHistory();
 	            const idx = path[path.length - 1];
 	            const scopePath = this._scopePathFromItemPath(path);
 	            const scopeItems = this._getItemsInScope(scopePath);
@@ -1387,8 +1538,7 @@
 	            if (scopeItems.length > 1) {
 	                scopeItems.splice(idx, 1);
 	                this._ensureMinimumScript();
-	                this.save();
-	                this.render();
+	                this._commitHistory();
 	
 	                const candidateIdx = Math.max(0, Math.min(idx - 1, scopeItems.length - 1));
 	                const candidatePath = scopePath ? scopePath.concat(candidateIdx) : [candidateIdx];
@@ -1397,8 +1547,7 @@
 	            } else {
 	                // Only item in this scope: keep structure, just clear the text.
 	                block.versions[block.active] = '';
-	                this.save();
-	                this.render();
+	                this._commitHistory();
 	                this.focus(path);
 	            }
 	        }
@@ -1425,7 +1574,13 @@
 	            }
 	            const target = e.target;
 	            if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON' || target.tagName === 'SELECT' || target.closest('.row') || target.closest('.container-box') || target.closest('#floating-actions') || target.closest('#selection-bar') || target.closest('.type-select-wrapper')) return;
-	            if (this.state.length === 0) { this.state = [this.createBlock('scene', '')]; this.save(); this.render(); this.focus([0]); return; }
+	            if (this.state.length === 0) {
+	                this._checkpointHistory();
+	                this.state = [this.createBlock('scene', '')];
+	                this._commitHistory();
+	                this.focus([0]);
+	                return;
+	            }
 	            const pageRect = this.page.getBoundingClientRect();
 	            const isInsidePage = e.clientX >= pageRect.left && e.clientX <= pageRect.right && e.clientY >= pageRect.top && e.clientY <= pageRect.bottom;
 	            if (isInsidePage) {
@@ -1448,12 +1603,11 @@
 
 	        changeBlockType(newType) {
 	            if (!this.lastFocusedPath) return;
-	            this.saveToHistory();
+	            this._checkpointHistory();
 	            const item = this._getItemByPath(this.lastFocusedPath);
 	            if (item && !item.isContainer) {
 	                item.type = newType;
-	                this.save();
-	                this.render();
+	                this._commitHistory();
 	                this.focus(this.lastFocusedPath);
 	            }
 	        }
@@ -1480,18 +1634,20 @@
 
         blockVer(id, dir) {
             const res = this.findBlockById(id); if (!res) return;
-            this.saveToHistory();
+            this._checkpointHistory();
             let n = res.item.active + dir;
             if (n < 0) n = res.item.versions.length - 1;
             if (n >= res.item.versions.length) n = 0;
-            res.item.active = n; this.save(); this.render();
+            res.item.active = n;
+            this._commitHistory();
         }
 
         addBlockVer(id) {
             const res = this.findBlockById(id); if (!res) return;
-            this.saveToHistory();
+            this._checkpointHistory();
             res.item.versions.push(res.item.versions[res.item.active]);
-            res.item.active = res.item.versions.length - 1; this.save(); this.render();
+            res.item.active = res.item.versions.length - 1;
+            this._commitHistory();
         }
 
 	        // ------------------------------------------------------------------
@@ -1500,15 +1656,14 @@
 	        containerVer(path, dir) {
 	            const c = this._getItemByPath(path);
 	            if (!c || !c.isContainer) return;
-	            this.saveToHistory();
+	            this._checkpointHistory();
 	            let n = c.active + dir;
 	            if (n < 0) n = c.versions.length - 1;
 	            if (n >= c.versions.length) n = 0;
 	            c.active = n;
 	            this.multiSelections = [];
 	            this.selectionScopePath = null;
-	            this.save();
-	            this.render();
+	            this._commitHistory();
 	        }
 	
 	        _regenerateIdsDeep(item) {
@@ -1522,44 +1677,41 @@
 	            }
 	        }
 	
-	        addContainerVer(path) {
-	            const c = this._getItemByPath(path);
-	            if (!c || !c.isContainer) return;
-	            this.saveToHistory();
-	            const clone = JSON.parse(JSON.stringify(c.versions[c.active] || []));
-	            clone.forEach(it => this._regenerateIdsDeep(it));
-	            c.versions.push(clone);
-	            c.active = c.versions.length - 1;
-	            this.multiSelections = [];
-	            this.selectionScopePath = null;
-	            this.save();
-	            this.render();
-	            this.saveToHistory(true);
-	        }
+		        addContainerVer(path) {
+		            const c = this._getItemByPath(path);
+		            if (!c || !c.isContainer) return;
+		            this._checkpointHistory();
+		            const clone = JSON.parse(JSON.stringify(c.versions[c.active] || []));
+		            clone.forEach(it => this._regenerateIdsDeep(it));
+		            c.versions.push(clone);
+		            c.active = c.versions.length - 1;
+		            this.multiSelections = [];
+		            this.selectionScopePath = null;
+		            this._commitHistory();
+		        }
 	
-	        ungroup(path) {
-	            if (!confirm("Ungroup?")) return;
-	            const c = this._getItemByPath(path);
-	            if (!c || !c.isContainer) return;
-	            this.saveToHistory();
-	
-	            const idx = path[path.length - 1];
-	            const parentScopePath = path.length <= 1 ? null : path.slice(0, -1);
-	            const parentItems = this._getItemsInScope(parentScopePath);
+		        ungroup(path) {
+		            if (!confirm("Ungroup?")) return;
+		            const c = this._getItemByPath(path);
+		            if (!c || !c.isContainer) return;
+		            this._checkpointHistory();
+		
+		            const idx = path[path.length - 1];
+		            const parentScopePath = path.length <= 1 ? null : path.slice(0, -1);
+		            const parentItems = this._getItemsInScope(parentScopePath);
 	            if (!parentItems) return;
 	
 	            const contents = c.versions[c.active] || [];
-	            parentItems.splice(idx, 1, ...contents);
-	
-	            this.multiSelections = [];
-	            this.selectionScopePath = null;
-	            this._ensureMinimumScript();
-	            this.save();
-	            this.render();
-	
-	            // Focus a sensible block after ungrouping.
-	            let focusPath = null;
-	            if (contents.length > 0) {
+		            parentItems.splice(idx, 1, ...contents);
+		
+		            this.multiSelections = [];
+		            this.selectionScopePath = null;
+		            this._ensureMinimumScript();
+		            this._commitHistory();
+		
+		            // Focus a sensible block after ungrouping.
+		            let focusPath = null;
+		            if (contents.length > 0) {
 	                const firstInsertedPath = (parentScopePath ? parentScopePath.concat(idx) : [idx]);
 	                focusPath = this._findFirstBlockPathInItem(firstInsertedPath);
 	            } else {
@@ -1568,25 +1720,26 @@
 	            if (focusPath) this.focus(focusPath);
 	        }
 
-        handlePaste(e) {
-            const isTextArea = e.target.tagName === 'TEXTAREA';
-            const text = e.clipboardData.getData('text');
-            if (isTextArea && !text.includes('\n') && text.length < 100) return;
-            e.preventDefault(); e.stopPropagation();
-            this.saveToHistory();
-            const blocks = [];
-            text.split(/\r?\n/).forEach((line, i, lines) => {
-                line = line.trim(); if (!line) return;
+		        handlePaste(e) {
+		            const isTextArea = e.target.tagName === 'TEXTAREA';
+		            const text = e.clipboardData.getData('text');
+		            if (isTextArea && !text.includes('\n') && text.length < 100) return;
+		            e.preventDefault(); e.stopPropagation();
+		            this._checkpointHistory();
+		            const blocks = [];
+		            text.split(/\r?\n/).forEach((line, i, lines) => {
+		                line = line.trim(); if (!line) return;
                 let type = 'action';
                 if (/^(INT\.|EXT\.|EST\.|I\/E)/i.test(line) || line.includes('مشهد')) type = 'scene';
                 else if (/TO:$/i.test(line)) type = 'transition';
                 else if (line.startsWith('(')) type = 'parenthetical';
                 else if (line.length < 50 && i + 1 < lines.length && lines[i + 1].trim().length > 0) type = 'character';
-                if (blocks.length > 0 && blocks[blocks.length-1].type === 'character' && type !== 'parenthetical') type = 'dialogue';
-                blocks.push(this.createBlock(type, line));
-            });
-            this.state.push(...blocks); this.save(); this.render();
-        }
+		                if (blocks.length > 0 && blocks[blocks.length-1].type === 'character' && type !== 'parenthetical') type = 'dialogue';
+		                blocks.push(this.createBlock(type, line));
+		            });
+		            this.state.push(...blocks);
+		            this._commitHistory();
+		        }
 
         getDefaultTitlePage() { return { title: '', writer: '', customAreas: [] }; }
         loadTitlePageFromStorage() {
@@ -1614,6 +1767,15 @@
         }
 
 	        undo() {
+	            // If the user hits Undo while a textarea has unsnapshotted edits (debounce pending),
+	            // first commit the current state so Redo can restore it.
+	            this._clearAllInputDebounceTimers();
+	            if (this.historyIndex >= 0) {
+	                const cur = JSON.stringify(this.state);
+	                if (this.history.length > 0 && JSON.stringify(this.history[this.historyIndex]) !== cur) {
+	                    this.saveToHistory();
+	                }
+	            }
 	            if (this.historyIndex > 0) {
 	                this.isUndoRedo = true;
 	                this.historyIndex--;
@@ -1629,6 +1791,7 @@
 	        }
 	        redo() {
 	            if (this.historyIndex < this.history.length - 1) {
+	                this._clearAllInputDebounceTimers();
 	                this.isUndoRedo = true;
 	                this.historyIndex++;
 	                this.state = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
@@ -1642,7 +1805,17 @@
 	            }
 	        }
 
-        clear() { if (confirm('Clear all?')) { this.saveToHistory(); this.state = [this.createBlock('scene')]; this.save(); this.render(); } }
+        clear() {
+            if (!confirm('Clear all?')) return;
+            this._checkpointHistory();
+            this.state = [this.createBlock('scene')];
+            this.multiSelections = [];
+            this.selectionScopePath = null;
+            this.lastFocusedPath = null;
+            this.lastFocusedIndexInScope = null;
+            this._commitHistory();
+            this.focus([0]);
+        }
 
         saveJSON() {
             let fileName = 'project.json';
@@ -1656,20 +1829,27 @@
             setTimeout(() => URL.revokeObjectURL(url), 10000);
         }
 
-        loadJSON(inp) {
-            const r = new FileReader();
-            r.onload = e => {
-                try {
-                    const loaded = JSON.parse(e.target.result);
-                    if (Array.isArray(loaded)) this.state = loaded;
-                    else { this.state = loaded.state || []; this.titlePage = loaded.titlePage || this.getDefaultTitlePage(); }
-                    this.save(); this.render();
-                } catch (err) {
-                    alert('Could not read file: invalid JSON.');
-                }
-            };
-            if (inp.files[0]) r.readAsText(inp.files[0]);
-        }
+	        loadJSON(inp) {
+	            const r = new FileReader();
+	            r.onload = e => {
+	                try {
+	                    const loaded = JSON.parse(e.target.result);
+	                    if (Array.isArray(loaded)) this.state = loaded;
+	                    else { this.state = loaded.state || []; this.titlePage = loaded.titlePage || this.getDefaultTitlePage(); }
+	                    this.multiSelections = [];
+	                    this.selectionScopePath = null;
+	                    this.lastFocusedPath = null;
+	                    this.lastFocusedIndexInScope = null;
+	                    this.save();
+	                    this.render();
+	                    // Loading a project is akin to opening a document: reset undo/redo to this file.
+	                    this._resetHistoryToCurrentState();
+	                } catch (err) {
+	                    alert('Could not read file: invalid JSON.');
+	                }
+	            };
+	            if (inp.files[0]) r.readAsText(inp.files[0]);
+	        }
 
         parseScreenplayText(text) {
             const lines = text.split(/\r?\n/), blocks = [];
@@ -1692,15 +1872,14 @@
             return blocks;
         }
 
-	        async loadFile(inp) {
-	            if (!inp.files || !inp.files[0]) return;
-	            const file = inp.files[0], name = file.name.toLowerCase();
-	            this.saveToHistory();
-	            try {
-	                if (name.endsWith('.json')) this.loadJSON(inp);
-	                else if (name.endsWith('.pdf')) await this.loadPDF(file);
-	                else if (name.endsWith('.docx')) await this.loadDOCX(file);
-	                else if (name.endsWith('.pages')) await this.loadPages(file);
+		        async loadFile(inp) {
+		            if (!inp.files || !inp.files[0]) return;
+		            const file = inp.files[0], name = file.name.toLowerCase();
+		            try {
+		                if (name.endsWith('.json')) this.loadJSON(inp);
+		                else if (name.endsWith('.pdf')) await this.loadPDF(file);
+		                else if (name.endsWith('.docx')) await this.loadDOCX(file);
+		                else if (name.endsWith('.pages')) await this.loadPages(file);
 	                else alert('Unsupported file type. Please use .json, .pdf, .docx, or .pages files.');
 	            } catch (err) { alert('Error loading file: ' + err.message); }
 	            finally {
@@ -1709,9 +1888,10 @@
 	            }
 	        }
 
-	        async loadPDF(file) {
-	            if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js library not loaded.');
-	            pdfjsLib.GlobalWorkerOptions.workerSrc = window.__pdfjsWorkerSrc || 'vendor/pdf.worker.min.js';
+		        async loadPDF(file) {
+		            if (typeof pdfjsLib === 'undefined' && window.__lastdraftPdfjsReady) { try { await window.__lastdraftPdfjsReady; } catch(e) {} }
+		            if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js library not loaded.');
+		            pdfjsLib.GlobalWorkerOptions.workerSrc = window.__pdfjsWorkerSrc || 'vendor/pdf.worker.min.js';
 	            const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
 	            let fullText = '';
             for (let pn = 1; pn <= pdf.numPages; pn++) {
@@ -1766,6 +1946,7 @@
             }
             this.state = this.parseScreenplayText(fullText.replace(/\n{3,}/g, '\n\n'));
             this.save(); this.render();
+            this._resetHistoryToCurrentState();
         }
 
         isNewParagraph(lineText, curPara, lastEndX, curStartX, lastY, curY, isRTL = false) {
@@ -1783,6 +1964,7 @@
         }
 
         async loadDOCX(file) {
+            if (typeof JSZip === 'undefined' && window.__lastdraftJsZipReady) { try { await window.__lastdraftJsZipReady; } catch(e) {} }
             if (typeof JSZip === 'undefined') throw new Error('JSZip library not loaded.');
             const zip = await JSZip.loadAsync(await file.arrayBuffer());
             const docFile = zip.file('word/document.xml');
@@ -1796,9 +1978,11 @@
             });
             if (!fullText || fullText.trim().length < 10) throw new Error('No text content found in DOCX.');
             this.state = this.parseScreenplayText(fullText); this.save(); this.render();
+            this._resetHistoryToCurrentState();
         }
 
         async loadPages(file) {
+            if (typeof JSZip === 'undefined' && window.__lastdraftJsZipReady) { try { await window.__lastdraftJsZipReady; } catch(e) {} }
             if (typeof JSZip === 'undefined') throw new Error('JSZip library not loaded.');
             const zip = await JSZip.loadAsync(await file.arrayBuffer());
             const fileNames = Object.keys(zip.files);
@@ -1821,6 +2005,7 @@
             }
             if (!fullText || fullText.trim().length < 10) throw new Error('Could not extract text from Pages file. Try exporting to PDF or DOCX first.');
             this.state = this.parseScreenplayText(fullText.replace(/\n{3,}/g, '\n\n').trim()); this.save(); this.render();
+            this._resetHistoryToCurrentState();
         }
 
         extractTextFromPagesXML(xml) {
@@ -1841,14 +2026,14 @@
         // PDF EXPORT — pdfmake programmatic layout (replaces window.print)
         // ====================================================================
 
-        exportPDF() {
+        async exportPDF() {
             // Show loading state on the Export PDF button
             const btn = [...document.querySelectorAll('#floating-actions button')].find(b => b.title === 'Export PDF');
             const origText = btn?.textContent;
             if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
             try {
-                this._ensurePdfMakeReady();
+                await this._ensurePdfMakeReady();
                 const docDef = this._buildDocDefinition();
 
                 let fileName = 'Last Draft.pdf';
@@ -1882,10 +2067,18 @@
         //
         // initPdfMakeFonts() must be called once before any createPdf call.
         // ----------------------------------------------------------------
-        _ensurePdfMakeReady() {
+        async _ensurePdfMakeReady() {
             if (this._pdfFontReady) return;
+            if (typeof pdfMake === 'undefined' && window.__lastdraftDepsReady) {
+                try { await window.__lastdraftDepsReady; } catch (e) { /* handled below */ }
+            }
             if (typeof pdfMake === 'undefined') {
-                throw new Error('pdfmake library not loaded. Please reload the page.');
+                const chosen = window.__lastdraftDepsChosen ? JSON.stringify(window.__lastdraftDepsChosen) : '';
+                const errs = window.__lastdraftDepsErrors
+                    ? Object.fromEntries(Object.entries(window.__lastdraftDepsErrors).map(([k, v]) => [k, v ? (v.message || String(v)) : null]))
+                    : null;
+                const hint = (chosen || errs) ? `\n\nDeps status:\n${chosen || ''}\n${errs ? JSON.stringify(errs) : ''}` : '';
+                throw new Error('pdfmake library not loaded. Please reload the page.' + hint);
             }
             initPdfMakeFonts();
             this._pdfFontReady = true;
@@ -2254,7 +2447,8 @@
 	            if (current) current.content = (current.content || '').toLowerCase();
 	            this.scenes.forEach((s, i) => s.index = i + 1);
 	
-	            this.renderSceneMap();
+	            const filterText = document.getElementById('scene-search')?.value || '';
+	            this.renderSceneMap(filterText);
 	        }
 
 	        renderSceneMap(filterText = '') {
@@ -2543,14 +2737,13 @@
 
             if (targetIndex >= fromIndex && targetIndex <= fromIndex + group.length) return;
 
-            this.saveToHistory();
+            this._checkpointHistory();
             this.state.splice(fromIndex, group.length);
             if (targetIndex > fromIndex) targetIndex -= group.length;
             targetIndex = Math.max(0, Math.min(targetIndex, this.state.length));
             this.state.splice(targetIndex, 0, ...group);
 
-            this.save();
-            this.render();
+            this._commitHistory();
 
             setTimeout(() => {
                 const newIndex = this.state.findIndex(b => !b.isContainer && b.id === fromBlockId);
