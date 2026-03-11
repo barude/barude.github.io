@@ -71,10 +71,10 @@
           <div class="field field--full">
             <label for="fundingMode">Funding</label>
             <select id="fundingMode">
-              <option value="none">No external funding</option>
-              <option value="funded">External funding</option>
+              <option value="none">No hard costs</option>
+              <option value="funded">Funded</option>
             </select>
-            <div class="hint">If funded, net profit splits across a Work Pool + Finance Pool.</div>
+            <div class="hint">No hard costs: Work Pool is 100%. Funded: Work + Finance pools split net profit.</div>
           </div>
         </div>
 
@@ -101,8 +101,8 @@
 
           <div class="inset">
             <div class="row row--spread">
-              <div class="subhead">Funders</div>
-              <div class="hint">Finance Pool splits pro-rata by investment amount.</div>
+              <div class="subhead">Investments</div>
+              <div class="hint">Any collaborator with an amount becomes a funder. Finance Pool splits pro‑rata.</div>
             </div>
             <div id="fundersList" class="stack-sm"></div>
           </div>
@@ -110,8 +110,16 @@
       </section>
 
       <section class="card">
-        <div class="card__head">
+        <div class="card__head card__head--row">
           <h2>Roles</h2>
+          <button
+            class="info"
+            type="button"
+            aria-label="About roles"
+            data-tip="Work is split into role buckets. Only active roles count, and their points are normalized so the Work Pool always totals 100%."
+          >
+            i
+          </button>
         </div>
         <div class="hint">
           Activate roles, assign collaborators, and choose status per role.
