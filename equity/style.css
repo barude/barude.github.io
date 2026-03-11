@@ -95,6 +95,13 @@ body {
   margin-bottom: 10px;
 }
 
+.card__head--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .card__head h2 {
   font-size: 14px;
   margin: 0;
@@ -103,6 +110,52 @@ body {
   font-family: var(--mono);
   font-weight: 650;
   color: #444;
+}
+
+.info {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: #666;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1;
+  cursor: help;
+}
+
+.info:hover,
+.info:focus-visible {
+  outline: none;
+  border-color: #111;
+  color: #111;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 999;
+  max-width: 320px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(17, 17, 17, 0.96);
+  color: #fff;
+  font-size: 12.5px;
+  line-height: 1.45;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  pointer-events: none;
+}
+
+.tooltip[data-show="true"] {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .row {
@@ -276,12 +329,12 @@ input[type="range"] {
   .people-row .btn {
     width: 100%;
   }
-  .role-top {
+  .role-head {
     grid-template-columns: auto 1fr;
   }
-  .role-top__right {
+  .role-head__badges {
     grid-column: 1 / -1;
-    text-align: left;
+    justify-content: flex-start;
     padding-top: 6px;
   }
   .card {
@@ -316,25 +369,97 @@ input[type="range"] {
   font-size: 13px;
 }
 
+.linkbtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 6px 0 0;
+  cursor: pointer;
+  color: #2a2a2a;
+  font-size: 12.5px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.linkbtn:hover {
+  color: #000;
+  text-decoration: underline;
+}
+
+.roleExamplesRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.examplesList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #555;
+  font-size: 13px;
+}
+
+.examplesList li {
+  margin: 2px 0;
+}
+
 .role-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
 }
 
-.role-top {
+.roleCard {
+  background: #fbfbfa;
+}
+
+.roleCard--active {
+  background: #fff;
+  border-color: var(--border-strong);
+}
+
+.role-head {
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 10px;
   align-items: start;
 }
 
-.role-top__right {
-  text-align: right;
-  font-family: var(--mono);
-  color: #555;
-  font-size: 12px;
+.role-head__toggle {
   padding-top: 2px;
+}
+
+.role-head__name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #111;
+  min-width: 0;
+}
+
+.role-head__badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  padding-top: 1px;
+  min-width: 0;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #555;
+  white-space: nowrap;
+}
+
+.role-body {
+  margin-top: 8px;
 }
 
 .role-assign {
@@ -343,9 +468,172 @@ input[type="range"] {
   border-top: 1px solid var(--border);
 }
 
+.roleAddRow {
+  margin-top: 4px;
+}
+
+.roleAddSelect {
+  min-width: 240px;
+  max-width: 100%;
+}
+
+@media (max-width: 620px) {
+  .roleAddSelect {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memberRow {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 170px 64px 42px;
+  gap: 10px;
+  align-items: center;
+}
+
+.memberRow--head {
+  display: grid;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: #777;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.memberRow__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberRow__status select {
+  min-width: 0;
+  width: 100%;
+}
+
+.memberRow__units {
+  justify-self: end;
+}
+
+.memberRow__remove {
+  justify-self: end;
+}
+
+.memberRow__remove .btn {
+  min-width: 38px;
+  padding: 8px 10px;
+}
+
+.unitsBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #333;
+}
+
+@media (max-width: 620px) {
+  .memberRow--head {
+    display: none;
+  }
+  .memberRow {
+    grid-template-columns: 1fr 64px 42px;
+    grid-template-areas:
+      "name name name"
+      "status units remove";
+    align-items: stretch;
+    gap: 8px 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+  }
+  .memberRow__name {
+    grid-area: name;
+    font-weight: 650;
+    overflow: visible;
+    text-overflow: initial;
+    white-space: normal;
+  }
+  .memberRow__status {
+    grid-area: status;
+  }
+  .memberRow__status select {
+    width: 100%;
+  }
+  .memberRow__units,
+  .memberRow__remove {
+    align-self: center;
+  }
+  .memberRow__units {
+    grid-area: units;
+    justify-self: end;
+  }
+  .memberRow__remove {
+    grid-area: remove;
+    justify-self: end;
+  }
+  .memberRow__remove .btn {
+    width: 42px;
+  }
+}
+
 .table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.resultsCards {
+  display: none;
+  gap: 10px;
+}
+
+.resultCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px;
+}
+
+.resultCard__name {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.resultCard__grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  align-items: baseline;
+}
+
+.resultCard__k {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #777;
+}
+
+.resultCard__v {
+  font-family: var(--mono);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .table {
@@ -378,6 +666,30 @@ input[type="range"] {
 .num {
   text-align: right;
   font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.table th.num,
+.table td.num {
+  padding-right: 10px;
+}
+
+.table th,
+.table td {
+  padding-left: 10px;
+}
+
+@media (max-width: 620px) {
+  .resultsCards {
+    display: flex;
+    flex-direction: column;
+  }
+  .resultsTable {
+    display: none;
+  }
+  .table {
+    min-width: 0;
+  }
 }
 
 .badge {
