@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Equity</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script defer src="./equity.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wrap topbar__inner">
+        <div class="brand">
+          <div class="brand__name">Equity</div>
+          <div class="brand__sub">A simple collaboration equity tool</div>
+        </div>
+        <div class="topbar__meta" id="metaLine"></div>
+      </div>
+    </header>
+
+    <main class="wrap stack">
+      <section class="card">
+        <div class="card__head">
+          <h2>Project</h2>
+        </div>
+        <div class="stack-sm">
+          <div class="field">
+            <label for="projectName">Project name</label>
+            <input id="projectName" type="text" placeholder="Untitled project" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="projectDesc">Brief description</label>
+            <textarea id="projectDesc" rows="2" placeholder="One-line context (optional)"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__head row">
+          <h2>Collaborators</h2>
+          <button class="btn" id="addPersonBtn" type="button">Add collaborator</button>
+        </div>
+        <div id="peopleList" class="stack-sm"></div>
+        <div class="hint">Only named collaborators participate in calculations.</div>
+      </section>
+
+      <section class="card">
+        <div class="card__head">
+          <h2>Financials</h2>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="netProfit">Total Net Profit</label>
+            <input id="netProfit" type="text" inputmode="decimal" placeholder="0" autocomplete="off" />
+            <div class="hint">Used only to compute payout figures. Percentages are independent.</div>
+          </div>
+
+          <div class="field field--compact">
+            <label for="currency">Currency</label>
+            <select id="currency">
+              <option value="EGP">EGP</option>
+              <option value="AED">AED</option>
+              <option value="SAR">SAR</option>
+              <option value="USD" selected>USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </div>
+
+          <div class="field field--full">
+            <label for="fundingMode">Funding</label>
+            <select id="fundingMode">
+              <option value="none">No external funding</option>
+              <option value="funded">External funding</option>
+            </select>
+            <div class="hint">If funded, net profit splits across a Work Pool + Finance Pool.</div>
+          </div>
+        </div>
+
+        <div id="fundingPane" class="stack-sm" hidden>
+          <div class="inset">
+            <div class="row row--spread row--wrap">
+              <div class="field" style="min-width: 260px">
+                <label for="financePoolPct">Finance pool (<span id="financePoolPctLabel">50</span>% of net profit)</label>
+                <input id="financePoolPct" type="range" min="30" max="60" step="1" value="50" />
+                <div class="hint">Work pool = <span id="workPoolPctLabel">50</span>%.</div>
+              </div>
+              <div class="pillbox">
+                <div class="pillbox__pill">
+                  <span class="pillbox__k">Finance</span>
+                  <span class="pillbox__v"><span id="financePoolPctPill">50</span>%</span>
+                </div>
+                <div class="pillbox__pill">
+                  <span class="pillbox__k">Work</span>
+                  <span class="pillbox__v"><span id="workPoolPctPill">50</span>%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="inset">
+            <div class="row row--spread">
+              <div class="subhead">Funders</div>
+              <div class="hint">Finance Pool splits pro-rata by investment amount.</div>
+            </div>
+            <div id="fundersList" class="stack-sm"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__head">
+          <h2>Roles</h2>
+        </div>
+        <div class="hint">
+          Activate roles, assign collaborators, and choose status per role.
+          Status units: Lead = 3, Partner = 2, Contributor = 1.
+        </div>
+        <div id="rolesList" class="stack"></div>
+      </section>
+
+      <section class="card">
+        <div class="card__head row">
+          <h2>Results</h2>
+          <div class="hint" id="calcStatus"></div>
+        </div>
+        <div id="resultsPane" class="stack-sm"></div>
+      </section>
+
+      <section class="card">
+        <div class="card__head">
+          <h2>Export</h2>
+        </div>
+        <div class="row row--wrap">
+          <button class="btn" id="exportJsonBtn" type="button">Export project.json</button>
+          <button class="btn" id="importJsonBtn" type="button">Import project.json</button>
+          <button class="btn btn--primary" id="exportPdfBtn" type="button">Export PDF Agreement</button>
+          <button class="btn btn--danger" id="resetBtn" type="button" title="Clears local autosave">Reset</button>
+          <input id="importFile" type="file" accept="application/json" hidden />
+        </div>
+        <div class="hint">Export/import is fully local. No analytics.</div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer__inner">
+        <div class="footer__credit">EQUITY — a shared ledger for creative work, created by Barüde © 2026 · Open Source (MIT)</div>
+      </div>
+    </footer>
+  </body>
+</html>
