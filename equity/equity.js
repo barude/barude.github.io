@@ -16,21 +16,7 @@
       label: "Writing / Research",
       pts: 10,
       desc: "Scriptwriting, story development, investigative work.",
-      examples: ["Treatment / script", "Research / interviews", "Narrative structure"],
-    },
-    {
-      key: "sound",
-      label: "Sound / Music",
-      pts: 9,
-      desc: "Recording, sound design, scoring, mixing.",
-      examples: ["Sound design", "Score / music", "Mixing / delivery"],
-    },
-    {
-      key: "image",
-      label: "Camera / Image",
-      pts: 9,
-      desc: "Cinematography, lighting, visual capture.",
-      examples: ["Cinematography", "Lighting", "On-set image capture"],
+      examples: ["Treatment / script text", "Narrative structure", "Research, interviews"],
     },
     {
       key: "post",
@@ -40,6 +26,13 @@
       examples: ["Editing", "Color / VFX", "Coding / pipeline"],
     },
     {
+      key: "sound",
+      label: "Sound / Music",
+      pts: 9,
+      desc: "Recording, sound design, scoring, mixing.",
+      examples: ["Sound design", "Score / music", "Mixing / delivery"],
+    },
+    {
       key: "performance",
       label: "Performance",
       pts: 8,
@@ -47,8 +40,22 @@
       examples: ["On-camera", "Voice performance", "Live delivery"],
     },
     {
-      key: "production",
-      label: "Production",
+      key: "image_capture",
+      label: "Image / Capture",
+      pts: 8,
+      desc: "Cinematography, lighting, stills, on-set image capture.",
+      examples: ["Camera work", "On-set lighting", "Photography"],
+    },
+    {
+      key: "design_visual",
+      label: "Design / Visual Identity",
+      pts: 7,
+      desc: "Visual design and graphic systems.",
+      examples: ["Deck layout + visual language", "Posters / key art", "Title / logo design"],
+    },
+    {
+      key: "production_logistics",
+      label: "Production / Logistics",
       pts: 7,
       desc: "Planning, scheduling, logistics, crew coordination.",
       examples: ["Scheduling", "Crew / vendors", "Operations"],
@@ -81,7 +88,7 @@
   const STATUS_LABELS = { lead: "Lead", partner: "Partner", contributor: "Contributor" };
 
   const CURRENCY = ["EGP", "AED", "SAR", "USD", "EUR", "GBP"];
-  const CURRENCY_PREFIX = { EGP: "EGP", AED: "AED", SAR: "SAR", USD: "$", EUR: "€", GBP: "£" };
+  const CURRENCY_PREFIX = { EGP: "E£", AED: "AED", SAR: "SAR", USD: "$", EUR: "€", GBP: "£" };
 
   function uid() {
     return Math.random().toString(36).slice(2, 10);
@@ -154,16 +161,28 @@
     out.desc = typeof src.desc === "string" ? src.desc : "";
     out.currency = CURRENCY.includes(src.currency) ? src.currency : "USD";
 
+    const legacyKeyFor = (newKey) => {
+      if (newKey === "image_capture") return "image";
+      if (newKey === "production_logistics") return "production";
+      return newKey;
+    };
+
     if (Array.isArray(src.roles) && src.roles.length) {
-      out.roles = src.roles
-        .filter(r => r && typeof r.key === "string")
-        .map(r => ({
-          key: r.key,
-          label: typeof r.label === "string" ? r.label : r.key,
-          pts: Number.isFinite(Number(r.pts)) ? Number(r.pts) : 0,
-          desc: typeof r.desc === "string" ? r.desc : "",
-          examples: Array.isArray(r.examples) ? r.examples.slice(0, 5).map(String) : [],
-        }));
+      const keys = new Set(src.roles.map(r => (r && typeof r.key === "string" ? r.key : "")).filter(Boolean));
+      const looksLegacy = (keys.has("image") || keys.has("production")) && !keys.has("image_capture") && !keys.has("design_visual");
+      if (looksLegacy) {
+        out.roles = safeStructuredClone(DEFAULT_ROLES);
+      } else {
+        out.roles = src.roles
+          .filter(r => r && typeof r.key === "string")
+          .map(r => ({
+            key: r.key,
+            label: typeof r.label === "string" ? r.label : r.key,
+            pts: Number.isFinite(Number(r.pts)) ? Number(r.pts) : 0,
+            desc: typeof r.desc === "string" ? r.desc : "",
+            examples: Array.isArray(r.examples) ? r.examples.slice(0, 5).map(String) : [],
+          }));
+      }
     }
 
     if (Array.isArray(src.participants)) {
@@ -176,7 +195,7 @@
     out.assignments = initAssignments(out.roles);
     if (src.assignments && typeof src.assignments === "object") {
       for (const role of out.roles) {
-        const a = src.assignments[role.key];
+        const a = src.assignments[role.key] || src.assignments[legacyKeyFor(role.key)];
         if (!a || typeof a !== "object") continue;
         const active = !!a.active;
         const notes = typeof a.notes === "string" ? a.notes : "";
@@ -246,9 +265,26 @@
   }
 
   function runCalc(project) {
-    const participants = project.participants.filter(p => (p.name || "").trim());
     const issues = [];
-    if (!participants.length) return { ok: false, issues: ["Add at least one named collaborator."], participants };
+    const iPoolPct =
+      project.financePool.mode === "funded" ? clamp(Number(project.financePool.pct) || 50, 30, 60) : 0;
+    const wPoolPct = 100 - iPoolPct;
+
+    const participants = project.participants.filter(p => (p.name || "").trim());
+    if (!participants.length) {
+      return {
+        ok: false,
+        issues: ["Add at least one named collaborator."],
+        participants: [],
+        validRoles: [],
+        totalPts: 0,
+        totalFunded: 0,
+        iPoolPct,
+        wPoolPct,
+        people: [],
+        sumPct: 0,
+      };
+    }
 
     const { scores, validRoles, totalPts } = computeWorkScores(project.assignments, project.roles, participants);
     if (!validRoles.length) issues.push("Activate at least one role and assign at least one collaborator to it.");
@@ -258,14 +294,20 @@
 
     const funders = Array.isArray(project.financePool.funders) ? project.financePool.funders : [];
     const totalFunded = funders.reduce((s, f) => s + parseNumber(String(f.amount ?? "")), 0);
-
-    let iPoolPct = project.financePool.mode === "funded" ? clamp(Number(project.financePool.pct) || 50, 30, 60) : 0;
-    let wPoolPct = 100 - iPoolPct;
-
-    if (iPoolPct > 0 && totalFunded <= 0) {
-      issues.push("Finance Pool ignored because no investments were entered.");
-      iPoolPct = 0;
-      wPoolPct = 100;
+    if (project.financePool.mode === "funded" && totalFunded <= 0) {
+      issues.unshift("Add at least one investment or switch to ‘No hard costs’ mode.");
+      return {
+        ok: false,
+        issues,
+        participants,
+        validRoles,
+        totalPts,
+        totalFunded,
+        iPoolPct,
+        wPoolPct,
+        people: [],
+        sumPct: 0,
+      };
     }
 
     const people = participants.map(p => {
@@ -415,17 +457,17 @@
     }
 
     function h2(text) {
-      if (y > margin) y += 14;
-      ensureSpace(42);
+      if (y > margin) y += 20;
+      ensureSpace(54);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(90);
       doc.text(text.toUpperCase(), margin, y);
-      y += 14;
+      y += 12;
       doc.setDrawColor(215);
       doc.line(margin, y, margin + maxW, y);
       doc.setTextColor(0);
-      y += 14;
+      y += 16;
     }
 
     function p(text) {
@@ -557,6 +599,40 @@
       ["left", "left", "left", "right"],
     );
 
+    h2("Role Glossary");
+    for (const role of calc.validRoles) {
+      const r = roleByKey[role.key] || role;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      ensureSpace(18);
+      doc.text(r.label || r.key, margin, y);
+      y += 12;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(80);
+      const dLines = doc.splitTextToSize(String(r.desc || ""), maxW);
+      if (dLines.length) {
+        ensureSpace(dLines.length * 12 + 4);
+        doc.text(dLines, margin, y);
+        y += dLines.length * 12 + 4;
+      }
+      doc.setTextColor(0);
+
+      if (Array.isArray(r.examples) && r.examples.length) {
+        doc.setFontSize(9.5);
+        doc.setTextColor(95);
+        const exText = `Examples: ${r.examples.slice(0, 4).join(" · ")}`;
+        const exLines = doc.splitTextToSize(exText, maxW);
+        ensureSpace(exLines.length * 11 + 6);
+        doc.text(exLines, margin, y);
+        y += exLines.length * 11 + 6;
+        doc.setTextColor(0);
+      } else {
+        y += 6;
+      }
+    }
+
     h2("Financial Summary");
     table(
       ["Item", "Value"],
@@ -614,7 +690,7 @@
       y += 30;
     }
 
-    const footer = "EQUITY — created by Barüde © 2026 · Open Source (MIT)";
+    const footer = "EQUITY — a shared ledger for creative work, created by Barüde © 2026 · Open Source (MIT)";
     const pages = doc.getNumberOfPages();
     for (let pi = 1; pi <= pages; pi++) {
       doc.setPage(pi);
@@ -656,6 +732,7 @@
   }
 
   let project = loadFromStorage() || cloneDefaultProject();
+  let pendingFocusPersonId = null;
 
   const el = {
     metaLine: document.getElementById("metaLine"),
@@ -682,6 +759,110 @@
     importFile: document.getElementById("importFile"),
     resetBtn: document.getElementById("resetBtn"),
   };
+
+  const ui = {
+    roleExamplesOpen: {},
+  };
+
+  const tooltipEl = document.createElement("div");
+  tooltipEl.className = "tooltip";
+  tooltipEl.dataset.show = "false";
+  document.body.appendChild(tooltipEl);
+
+  let tooltipPinned = false;
+  let tooltipTarget = null;
+
+  function positionTooltip(target) {
+    const rect = target.getBoundingClientRect();
+    const pad = 10;
+    const tipW = Math.min(320, Math.max(220, window.innerWidth * 0.66));
+    tooltipEl.style.maxWidth = `${tipW}px`;
+
+    const aboveY = rect.top - pad;
+    const belowY = rect.bottom + pad;
+
+    const placeBelow = belowY + 80 < window.innerHeight || aboveY < 120;
+    const rawLeft = rect.left + rect.width / 2 - tipW / 2;
+    const left = Math.max(10, Math.min(rawLeft, window.innerWidth - tipW - 10));
+    const top = placeBelow ? belowY : Math.max(10, rect.top - pad);
+
+    tooltipEl.style.left = `${left}px`;
+    tooltipEl.style.top = `${top}px`;
+    tooltipEl.style.transform = placeBelow ? "translateY(0)" : "translateY(-100%)";
+  }
+
+  function showTooltip(target, pinned = false) {
+    const tip = target?.dataset?.tip;
+    if (!tip) return;
+    tooltipPinned = pinned;
+    tooltipTarget = target;
+    tooltipEl.textContent = tip;
+    tooltipEl.dataset.show = "true";
+    positionTooltip(target);
+  }
+
+  function hideTooltip(force = false) {
+    if (tooltipPinned && !force) return;
+    tooltipPinned = false;
+    tooltipTarget = null;
+    tooltipEl.dataset.show = "false";
+  }
+
+  document.addEventListener("mouseover", (e) => {
+    const t = e.target.closest(".info[data-tip]");
+    if (!t || tooltipPinned) return;
+    showTooltip(t, false);
+  });
+
+  document.addEventListener("mouseout", (e) => {
+    if (tooltipPinned) return;
+    const fromInfo = e.target.closest(".info[data-tip]");
+    if (!fromInfo) return;
+    const to = e.relatedTarget;
+    if (to && (to.closest?.(".info[data-tip]") || to === tooltipEl)) return;
+    hideTooltip(true);
+  });
+
+  document.addEventListener("focusin", (e) => {
+    const t = e.target.closest(".info[data-tip]");
+    if (!t) return;
+    showTooltip(t, false);
+  });
+
+  document.addEventListener("focusout", (e) => {
+    const t = e.target.closest(".info[data-tip]");
+    if (!t) return;
+    hideTooltip(true);
+  });
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest(".info[data-tip]");
+    if (t) {
+      e.preventDefault();
+      if (tooltipPinned && tooltipTarget === t) {
+        hideTooltip(true);
+      } else {
+        showTooltip(t, true);
+      }
+      return;
+    }
+    hideTooltip(true);
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") hideTooltip(true);
+  });
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (tooltipTarget) positionTooltip(tooltipTarget);
+    },
+    true,
+  );
+  window.addEventListener("resize", () => {
+    if (tooltipTarget) positionTooltip(tooltipTarget);
+  });
 
   function syncPools() {
     const iPool = project.financePool.mode === "funded" ? clamp(Number(project.financePool.pct) || 50, 30, 60) : 0;
@@ -726,7 +907,9 @@
   }
 
   function addPerson() {
-    project.participants.push({ id: uid(), name: "" });
+    const id = uid();
+    project.participants.push({ id, name: "" });
+    pendingFocusPersonId = id;
     scheduleSave();
     renderAll();
   }
@@ -789,26 +972,6 @@
     scheduleSave();
   }
 
-  function toggleFunder(pid, isFunder) {
-    const funders = project.financePool.funders;
-    const existing = funders.find(f => f.pid === pid);
-    if (isFunder) {
-      if (!existing) funders.push({ pid, amount: "", riskPremium: "20" });
-    } else {
-      project.financePool.funders = funders.filter(f => f.pid !== pid);
-    }
-    scheduleSave();
-    renderAll();
-  }
-
-  function updateFunder(pid, key, value) {
-    const f = project.financePool.funders.find(x => x.pid === pid);
-    if (!f) return;
-    if (key === "amount") f.amount = String(value).replace(/[^0-9.\-]/g, "");
-    if (key === "riskPremium") f.riskPremium = String(value).replace(/[^0-9.\-]/g, "");
-    scheduleSave();
-  }
-
   function renderMeta(calc) {
     const named = project.participants.filter(p => (p.name || "").trim()).length;
     const rolesActive = project.roles.filter(r => project.assignments[r.key]?.active).length;
@@ -820,6 +983,7 @@
     el.peopleList.innerHTML = "";
 
     const frag = document.createDocumentFragment();
+    let focusEl = null;
     for (const p of project.participants) {
       const row = document.createElement("div");
       row.className = "people-row";
@@ -831,6 +995,7 @@
       input.value = p.name;
       input.addEventListener("input", () => updatePerson(p.id, input.value));
       input.addEventListener("blur", () => renderAll());
+      if (p.id === pendingFocusPersonId) focusEl = input;
 
       const actions = document.createElement("div");
       actions.className = "row";
@@ -848,6 +1013,10 @@
     }
 
     el.peopleList.appendChild(frag);
+    if (focusEl) {
+      pendingFocusPersonId = null;
+      setTimeout(() => focusEl.focus(), 0);
+    }
   }
 
   function renderFunding(calc) {
@@ -867,12 +1036,13 @@
     el.workPoolPctPill.textContent = String(wPool);
 
     el.fundersList.innerHTML = "";
+    if (project.financePool.mode !== "funded") return;
 
     const named = project.participants.filter(p => (p.name || "").trim());
     if (!named.length) {
       const hint = document.createElement("div");
       hint.className = "hint";
-      hint.textContent = "Add collaborators first to assign funders.";
+      hint.textContent = "Add collaborators first to enter investments.";
       el.fundersList.appendChild(hint);
       return;
     }
@@ -890,95 +1060,107 @@
       title.className = "chip__title";
       title.textContent = p.name;
 
-      const toggle = document.createElement("label");
-      toggle.className = "row";
-      toggle.style.gap = "8px";
-      toggle.style.userSelect = "none";
-
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = !!f;
-      cb.addEventListener("change", () => toggleFunder(p.id, cb.checked));
-
-      const cbText = document.createElement("span");
-      cbText.className = "hint";
-      cbText.style.marginTop = "0";
-      cbText.textContent = "Funder";
-
-      toggle.appendChild(cb);
-      toggle.appendChild(cbText);
-
       head.appendChild(title);
-      head.appendChild(toggle);
-
       row.appendChild(head);
 
-      if (f) {
-        const grid = document.createElement("div");
-        grid.className = "grid2";
-        grid.style.marginTop = "10px";
+      const grid = document.createElement("div");
+      grid.className = "grid2";
+      grid.style.marginTop = "10px";
 
-        const amt = document.createElement("div");
-        amt.className = "field";
-        const amtLabel = document.createElement("label");
-        amtLabel.textContent = "Amount invested";
-        const amtInput = document.createElement("input");
-        amtInput.type = "text";
-        amtInput.inputMode = "decimal";
-        amtInput.value = String(f.amount ?? "");
-        amtInput.placeholder = "0";
-        amt.appendChild(amtLabel);
-        amt.appendChild(amtInput);
+      const amt = document.createElement("div");
+      amt.className = "field";
+      const amtLabel = document.createElement("label");
+      amtLabel.textContent = "Investment amount";
+      const amtInput = document.createElement("input");
+      amtInput.type = "text";
+      amtInput.inputMode = "decimal";
+      amtInput.value = String(f?.amount ?? "");
+      amtInput.placeholder = "0";
+      amt.appendChild(amtLabel);
+      amt.appendChild(amtInput);
 
-        const rp = document.createElement("div");
-        rp.className = "field";
-        const rpLabel = document.createElement("label");
-        rpLabel.textContent = "Risk premium (%)";
-        const rpInput = document.createElement("input");
-        rpInput.type = "text";
-        rpInput.inputMode = "decimal";
-        rpInput.value = String(f.riskPremium ?? "");
-        rpInput.placeholder = "20";
-        rp.appendChild(rpLabel);
-        rp.appendChild(rpInput);
+      const rp = document.createElement("div");
+      rp.className = "field";
+      const rpLabel = document.createElement("label");
+      rpLabel.textContent = "Premium (%)";
+      const rpInput = document.createElement("input");
+      rpInput.type = "text";
+      rpInput.inputMode = "decimal";
+      rpInput.value = String(f?.riskPremium ?? "20");
+      rpInput.placeholder = "20";
+      rpInput.disabled = parseNumber(String(amtInput.value ?? "")) <= 0;
+      rp.appendChild(rpLabel);
+      rp.appendChild(rpInput);
 
-        grid.appendChild(amt);
-        grid.appendChild(rp);
-        row.appendChild(grid);
+      grid.appendChild(amt);
+      grid.appendChild(rp);
+      row.appendChild(grid);
 
-        const note = document.createElement("div");
-        note.className = "chip__desc";
-        row.appendChild(note);
+      const note = document.createElement("div");
+      note.className = "chip__desc";
+      row.appendChild(note);
 
-        const refreshRecoup = () => {
-          const invested = parseNumber(String(amtInput.value ?? ""));
-          const premium = parseNumber(String(rpInput.value ?? ""));
-          const recoup = invested * (1 + premium / 100);
-          if (invested > 0) {
-            note.hidden = false;
-            note.textContent = `Recoups ${formatMoney(project.currency, recoup)} first (before net profit).`;
-          } else {
-            note.hidden = true;
-            note.textContent = "";
-          }
-        };
+      const upsert = () => {
+        let funder = project.financePool.funders.find(x => x.pid === p.id);
+        if (!funder) {
+          funder = { pid: p.id, amount: "", riskPremium: "20" };
+          project.financePool.funders.push(funder);
+        }
+        return funder;
+      };
 
-        amtInput.addEventListener("input", () => {
-          updateFunder(p.id, "amount", amtInput.value);
-          refreshRecoup();
-          renderComputed();
-        });
-        rpInput.addEventListener("input", () => {
-          updateFunder(p.id, "riskPremium", rpInput.value);
-          refreshRecoup();
-        });
+      const dropIfEmpty = () => {
+        const funder = project.financePool.funders.find(x => x.pid === p.id);
+        if (!funder) return;
+        if (parseNumber(String(funder.amount ?? "")) <= 0) {
+          project.financePool.funders = project.financePool.funders.filter(x => x.pid !== p.id);
+        }
+      };
+
+      const refreshRecoup = () => {
+        const invested = parseNumber(String(amtInput.value ?? ""));
+        const premium = parseNumber(String(rpInput.value ?? ""));
+        const recoup = invested * (1 + premium / 100);
+        if (invested > 0) {
+          note.hidden = false;
+          note.textContent = `Recoups ${formatMoney(project.currency, recoup)} first (from gross).`;
+        } else {
+          note.hidden = true;
+          note.textContent = "";
+        }
+      };
+
+      amtInput.addEventListener("input", () => {
+        const cleaned = String(amtInput.value).replace(/[^0-9.\-]/g, "");
+        amtInput.value = cleaned;
+        const invested = parseNumber(cleaned);
+        if (invested > 0) {
+          const funder = upsert();
+          funder.amount = cleaned;
+          if (!String(funder.riskPremium || "").trim()) funder.riskPremium = "20";
+          rpInput.disabled = false;
+        } else {
+          const funder = project.financePool.funders.find(x => x.pid === p.id);
+          if (funder) funder.amount = cleaned;
+          dropIfEmpty();
+          rpInput.disabled = true;
+        }
+        scheduleSave();
         refreshRecoup();
-      } else if (calc && calc.totalFunded <= 0 && project.financePool.mode === "funded") {
-        const note = document.createElement("div");
-        note.className = "chip__desc";
-        note.textContent = "Finance Pool requires at least one investment amount.";
-        row.appendChild(note);
-      }
+        renderComputed();
+      });
+
+      rpInput.addEventListener("input", () => {
+        if (rpInput.disabled) return;
+        const cleaned = String(rpInput.value).replace(/[^0-9.\-]/g, "");
+        rpInput.value = cleaned;
+        const funder = upsert();
+        funder.riskPremium = cleaned || "0";
+        scheduleSave();
+        refreshRecoup();
+      });
+
+      refreshRecoup();
 
       el.fundersList.appendChild(row);
     }
@@ -1001,47 +1183,89 @@
       if (!a) continue;
 
       const card = document.createElement("div");
-      card.className = "chip";
+      card.className = `chip roleCard${a.active ? " roleCard--active" : ""}`;
 
-      const top = document.createElement("div");
-      top.className = "role-top";
+      const head = document.createElement("div");
+      head.className = "role-head";
 
       const activeWrap = document.createElement("div");
+      activeWrap.className = "role-head__toggle";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = !!a.active;
+      cb.setAttribute("aria-label", `Activate role: ${role.label}`);
       cb.addEventListener("change", () => toggleRole(role.key, cb.checked));
       activeWrap.appendChild(cb);
 
-      const mid = document.createElement("div");
       const title = document.createElement("div");
-      title.className = "chip__title";
+      title.className = "role-head__name";
       title.textContent = role.label;
+      const badges = document.createElement("div");
+      badges.className = "role-head__badges";
+      const pts = Number(role.pts) || 0;
+      const poolPct = a.active && a.members.length > 0 && totalPts > 0 ? (pts / totalPts) * wPoolPct : null;
+
+      const ptsBadge = document.createElement("div");
+      ptsBadge.className = "roleBadge";
+      ptsBadge.appendChild(Object.assign(document.createElement("span"), { textContent: `${pts} pt` }));
+      ptsBadge.appendChild(
+        infoButton(
+          "Role points set this bucket size inside the Work Pool. When only some roles are active, points are normalized across active roles.",
+        ),
+      );
+      badges.appendChild(ptsBadge);
+
+      const poolBadge = document.createElement("div");
+      poolBadge.className = "roleBadge";
+      poolBadge.appendChild(
+        Object.assign(document.createElement("span"), {
+          textContent: poolPct == null ? "—" : `${poolPct.toFixed(1)}% of net profit (work)`,
+        }),
+      );
+      poolBadge.appendChild(
+        infoButton("This is this role’s net-profit share of the Work Pool: Work Pool × (normalized role points)."),
+      );
+      badges.appendChild(poolBadge);
+
+      head.appendChild(activeWrap);
+      head.appendChild(title);
+      head.appendChild(badges);
+      card.appendChild(head);
+
+      const body = document.createElement("div");
+      body.className = "role-body";
+
       const desc = document.createElement("div");
       desc.className = "chip__desc";
       desc.textContent = role.desc;
-      mid.appendChild(title);
-      mid.appendChild(desc);
+      body.appendChild(desc);
 
-      const right = document.createElement("div");
-      right.className = "role-top__right";
-      const pts = Number(role.pts) || 0;
-      const poolPct = a.active && a.members.length > 0 && totalPts > 0 ? (pts / totalPts) * wPoolPct : null;
-      right.innerHTML = "";
-      const ptsLine = document.createElement("div");
-      ptsLine.textContent = `${pts} pt`;
-      right.appendChild(ptsLine);
-      if (poolPct != null) {
-        const poolLine = document.createElement("div");
-        poolLine.textContent = `${poolPct.toFixed(1)}% of net profit (work)`;
-        right.appendChild(poolLine);
+      const exRow = document.createElement("div");
+      exRow.className = "roleExamplesRow";
+      const exBtn = document.createElement("button");
+      exBtn.type = "button";
+      exBtn.className = "linkbtn";
+      const isOpen = !!ui.roleExamplesOpen[role.key];
+      exBtn.textContent = isOpen ? "Hide examples" : "See examples";
+      exBtn.addEventListener("click", () => {
+        ui.roleExamplesOpen[role.key] = !ui.roleExamplesOpen[role.key];
+        renderRoles(runCalc(project));
+      });
+      exRow.appendChild(exBtn);
+      body.appendChild(exRow);
+
+      if (isOpen && Array.isArray(role.examples) && role.examples.length) {
+        const ul = document.createElement("ul");
+        ul.className = "examplesList";
+        for (const ex of role.examples.slice(0, 5)) {
+          const li = document.createElement("li");
+          li.textContent = ex;
+          ul.appendChild(li);
+        }
+        body.appendChild(ul);
       }
 
-      top.appendChild(activeWrap);
-      top.appendChild(mid);
-      top.appendChild(right);
-
-      card.appendChild(top);
+      card.appendChild(body);
 
       if (a.active) {
         const assign = document.createElement("div");
@@ -1053,21 +1277,34 @@
           hint.textContent = "Add named collaborators to assign this role.";
           assign.appendChild(hint);
         } else {
-          const tableEl = document.createElement("table");
-          tableEl.className = "table";
-          const thead = document.createElement("thead");
-          thead.innerHTML = "<tr><th>Person</th><th>Status</th><th class=\"num\">Units</th><th class=\"num\"></th></tr>";
-          tableEl.appendChild(thead);
-          const tbody = document.createElement("tbody");
+          const list = document.createElement("div");
+          list.className = "memberList";
+
+          const headRow = document.createElement("div");
+          headRow.className = "memberRow memberRow--head";
+          headRow.appendChild(
+            Object.assign(document.createElement("div"), { className: "memberRow__name", textContent: "Name" }),
+          );
+          headRow.appendChild(
+            Object.assign(document.createElement("div"), { className: "memberRow__status", textContent: "Status" }),
+          );
+          headRow.appendChild(
+            Object.assign(document.createElement("div"), { className: "memberRow__units", textContent: "Units" }),
+          );
+          headRow.appendChild(Object.assign(document.createElement("div"), { className: "memberRow__remove" }));
+          list.appendChild(headRow);
 
           for (const m of a.members) {
             const person = project.participants.find(p => p.id === m.pid);
-            const tr = document.createElement("tr");
+            const row = document.createElement("div");
+            row.className = "memberRow";
 
-            const tdName = document.createElement("td");
-            tdName.textContent = person ? (person.name || "—") : "—";
+            const nameCell = document.createElement("div");
+            nameCell.className = "memberRow__name";
+            nameCell.textContent = person ? (person.name || "—") : "—";
 
-            const tdStatus = document.createElement("td");
+            const statusCell = document.createElement("div");
+            statusCell.className = "memberRow__status";
             const sel = document.createElement("select");
             for (const st of STATUS_ORDER) {
               const opt = document.createElement("option");
@@ -1077,40 +1314,39 @@
             }
             sel.value = m.status;
             sel.addEventListener("change", () => setRoleMemberStatus(role.key, m.pid, sel.value));
-            tdStatus.appendChild(sel);
+            statusCell.appendChild(sel);
 
-            const tdUnits = document.createElement("td");
-            tdUnits.className = "num";
-            tdUnits.textContent = `${STATUS_UNITS[m.status] || 0}`;
+            const unitsCell = document.createElement("div");
+            unitsCell.className = "memberRow__units";
+            const ub = document.createElement("span");
+            ub.className = "unitsBadge";
+            ub.textContent = String(STATUS_UNITS[m.status] || 0);
+            unitsCell.appendChild(ub);
 
-            const tdDel = document.createElement("td");
-            tdDel.className = "num";
+            const delCell = document.createElement("div");
+            delCell.className = "memberRow__remove";
             const del = document.createElement("button");
             del.type = "button";
             del.className = "btn btn--danger";
             del.textContent = "×";
             del.title = "Remove from role";
             del.addEventListener("click", () => removeRoleMember(role.key, m.pid));
-            tdDel.appendChild(del);
+            delCell.appendChild(del);
 
-            tr.appendChild(tdName);
-            tr.appendChild(tdStatus);
-            tr.appendChild(tdUnits);
-            tr.appendChild(tdDel);
-            tbody.appendChild(tr);
+            row.appendChild(nameCell);
+            row.appendChild(statusCell);
+            row.appendChild(unitsCell);
+            row.appendChild(delCell);
+            list.appendChild(row);
           }
-          tableEl.appendChild(tbody);
-          const tableWrap = document.createElement("div");
-          tableWrap.className = "table-wrap";
-          tableWrap.appendChild(tableEl);
-          assign.appendChild(tableWrap);
+          assign.appendChild(list);
 
           const unassigned = named.filter(p => !a.members.some(m => m.pid === p.id));
           const addRow = document.createElement("div");
-          addRow.className = "row row--wrap";
+          addRow.className = "row row--wrap roleAddRow";
 
           const pick = document.createElement("select");
-          pick.style.minWidth = "240px";
+          pick.className = "roleAddSelect";
           const opt0 = document.createElement("option");
           opt0.value = "";
           opt0.textContent = unassigned.length ? "Add collaborator…" : "All assigned";
@@ -1142,13 +1378,6 @@
           notes.appendChild(notesLabel);
           notes.appendChild(notesInput);
           assign.appendChild(notes);
-
-          const example = document.createElement("div");
-          example.className = "hint";
-          if (Array.isArray(role.examples) && role.examples.length) {
-            example.textContent = `Examples: ${role.examples.slice(0, 3).join(" · ")}.`;
-          }
-          assign.appendChild(example);
         }
 
         card.appendChild(assign);
@@ -1163,6 +1392,21 @@
 
   function renderResults(calc) {
     el.resultsPane.innerHTML = "";
+
+    const summary = document.createElement("div");
+    summary.className = "row row--wrap row--spread";
+    const pills = document.createElement("div");
+    pills.className = "row row--wrap";
+    pills.appendChild(badge("Work Pool", `${calc.wPoolPct}%`));
+    pills.appendChild(badge("Finance Pool", `${calc.iPoolPct}%`));
+    if (calc.ok) pills.appendChild(badge("Total", `${calc.sumPct.toFixed(2)}%`));
+    summary.appendChild(pills);
+    summary.appendChild(
+      infoButton(
+        "Work Pool splits by role buckets. Only active roles count, and their points are normalized so Work always totals 100%. Inside a role, shares split by status units (Lead 3, Partner 2, Contributor 1). Finance Pool splits pro‑rata by investment.",
+      ),
+    );
+    el.resultsPane.appendChild(summary);
 
     if (!calc.ok) {
       const list = document.createElement("div");
@@ -1196,12 +1440,41 @@
     const currency = project.currency;
     const netProfit = parseNumber(project.totals.netProfit);
 
-    const pills = document.createElement("div");
-    pills.className = "row row--wrap";
-    pills.appendChild(badge(`Work Pool`, `${calc.wPoolPct}%`));
-    pills.appendChild(badge(`Finance Pool`, `${calc.iPoolPct}%`));
-    pills.appendChild(badge(`Total`, `${calc.sumPct.toFixed(2)}%`));
-    el.resultsPane.appendChild(pills);
+    const cards = document.createElement("div");
+    cards.className = "resultsCards";
+    for (const p of calc.people) {
+      const card = document.createElement("div");
+      card.className = "resultCard";
+
+      const name = document.createElement("div");
+      name.className = "resultCard__name";
+      name.textContent = p.name;
+      card.appendChild(name);
+
+      const grid = document.createElement("div");
+      grid.className = "resultCard__grid";
+
+      const payout = (netProfit * p.totalProfitPct) / 100;
+      const items = [
+        ["Total %", `${p.totalProfitPct.toFixed(2)}%`],
+        ["Work %", `${p.workPoolContribPct.toFixed(2)}%`],
+        ["Finance %", `${p.finPoolContribPct.toFixed(2)}%`],
+        ["Payout", formatMoney(currency, payout)],
+      ];
+      for (const [k, v] of items) {
+        const kk = document.createElement("div");
+        kk.className = "resultCard__k";
+        kk.textContent = k;
+        const vv = document.createElement("div");
+        vv.className = "resultCard__v";
+        vv.textContent = v;
+        grid.appendChild(kk);
+        grid.appendChild(vv);
+      }
+      card.appendChild(grid);
+      cards.appendChild(card);
+    }
+    el.resultsPane.appendChild(cards);
 
     const tableEl = document.createElement("table");
     tableEl.className = "table";
@@ -1243,7 +1516,7 @@
     }
     tableEl.appendChild(tbody);
     const tableWrap = document.createElement("div");
-    tableWrap.className = "table-wrap";
+    tableWrap.className = "table-wrap resultsTable";
     tableWrap.appendChild(tableEl);
     el.resultsPane.appendChild(tableWrap);
 
@@ -1265,6 +1538,16 @@
     vv.textContent = v;
     b.appendChild(kk);
     b.appendChild(vv);
+    return b;
+  }
+
+  function infoButton(tip) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "info";
+    b.setAttribute("aria-label", "Info");
+    b.dataset.tip = tip;
+    b.textContent = "i";
     return b;
   }
 
