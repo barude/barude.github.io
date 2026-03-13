@@ -9,77 +9,77 @@
       label: "Direction",
       pts: 10,
       desc: "Creative leadership, decision-making, visual language.",
-      examples: ["Creative vision", "Final decisions", "Tone and approach"],
+      examples: ["Director", "Creative Director", "Art Director", "Showrunner", "Creative Lead", "Project Lead", "Concept & Tone", "Final Cut Authority"],
     },
     {
       key: "writing",
       label: "Writing / Research",
       pts: 10,
       desc: "Scriptwriting, story development, investigative work.",
-      examples: ["Treatment / script text", "Narrative structure", "Research, interviews"],
+      examples: ["Screenwriter", "Scriptwriter", "Story Editor", "Researcher", "Journalist", "Narrative Consultant", "Interviewer", "Treatment / Development"],
     },
     {
       key: "post",
       label: "Post / Technical",
       pts: 9,
       desc: "Editing, color, VFX, coding, technical pipeline.",
-      examples: ["Editing", "Color / VFX", "Coding / pipeline"],
+      examples: ["Editor", "Colorist", "VFX Artist", "Motion Graphics", "Developer / Engineer", "DIT", "Technical Supervisor", "Pipeline / Workflow"],
     },
     {
       key: "sound",
       label: "Sound / Music",
       pts: 9,
       desc: "Recording, sound design, scoring, mixing.",
-      examples: ["Sound design", "Score / music", "Mixing / delivery"],
+      examples: ["Sound Designer", "Composer", "Music Producer", "Recording Engineer", "Mixer", "Foley Artist", "Sound Supervisor", "Sync / Licensing"],
     },
     {
       key: "performance",
       label: "Performance",
       pts: 8,
       desc: "On-camera, voice, public-facing presence.",
-      examples: ["On-camera", "Voice performance", "Live delivery"],
+      examples: ["Actor", "Presenter / Host", "Narrator", "Voice Artist", "Interviewer (on-camera)", "Subject / Contributor", "MC / Live Host", "On-Camera Talent"],
     },
     {
       key: "image_capture",
       label: "Image / Capture",
       pts: 8,
       desc: "Cinematography, lighting, stills, on-set image capture.",
-      examples: ["Camera work", "On-set lighting", "Photography"],
+      examples: ["Cinematographer / DP", "Camera Operator", "1st AC / Focus Puller", "Gaffer", "Lighting Technician", "Still Photographer", "Drone Operator", "BTS Photographer"],
     },
     {
       key: "design_visual",
       label: "Design / Visual Identity",
       pts: 7,
       desc: "Visual design and graphic systems.",
-      examples: ["Deck layout + visual language", "Posters / key art", "Title / logo design"],
+      examples: ["Graphic Designer", "Brand / Identity Designer", "Motion Designer", "Typographer", "Poster / Key Art", "UI / UX Designer", "Set Designer", "Title Sequence"],
     },
     {
       key: "production_logistics",
       label: "Production / Logistics",
       pts: 7,
       desc: "Planning, scheduling, logistics, crew coordination.",
-      examples: ["Scheduling", "Crew / vendors", "Operations"],
+      examples: ["Producer", "Line Producer", "Production Manager", "Production Coordinator", "1st AD (Scheduling)", "Location Manager", "Casting Director", "PA / Runner"],
     },
     {
       key: "funding_work",
       label: "Funding Work",
       pts: 7,
       desc: "Fundraising, grant writing, investor relations.",
-      examples: ["Grant writing", "Fundraising", "Investor outreach"],
+      examples: ["Grant Writer", "Development Producer", "Fundraising Lead", "Campaign Manager", "Co-Producer (Finance)", "Investor Relations", "Crowdfunding", "Sponsorship Outreach"],
     },
     {
       key: "brand",
       label: "Brand / Client",
       pts: 6,
       desc: "Client relations, partnerships, brand alignment.",
-      examples: ["Client comms", "Partnerships", "Alignment / approvals"],
+      examples: ["Account Manager", "Client Lead", "Brand Strategist", "Partnership Manager", "Exec Producer (Brand)", "Brief Liaison", "Approvals / Sign-off", "Commercial Lead"],
     },
     {
       key: "distribution",
       label: "Distribution / Comms",
       pts: 6,
       desc: "Marketing, release strategy, audience development.",
-      examples: ["Release strategy", "Press / outreach", "Community / audience"],
+      examples: ["Publicist / PR", "Festival Strategist", "Social Media Manager", "Marketing Coordinator", "Community Manager", "Press / Outreach", "Release Strategy", "Subtitling / Access"],
     },
   ];
 
@@ -180,7 +180,7 @@
             label: typeof r.label === "string" ? r.label : r.key,
             pts: Number.isFinite(Number(r.pts)) ? Number(r.pts) : 0,
             desc: typeof r.desc === "string" ? r.desc : "",
-            examples: Array.isArray(r.examples) ? r.examples.slice(0, 5).map(String) : [],
+            examples: Array.isArray(r.examples) ? r.examples.slice(0, 8).map(String) : [],
           }));
       }
     }
@@ -622,7 +622,7 @@
       if (Array.isArray(r.examples) && r.examples.length) {
         doc.setFontSize(9.5);
         doc.setTextColor(95);
-        const exText = `Examples: ${r.examples.slice(0, 4).join(" · ")}`;
+        const exText = `Examples: ${r.examples.slice(0, 6).join(" · ")}`;
         const exLines = doc.splitTextToSize(exText, maxW);
         ensureSpace(exLines.length * 11 + 6);
         doc.text(exLines, margin, y);
@@ -1255,14 +1255,15 @@
       body.appendChild(exRow);
 
       if (isOpen && Array.isArray(role.examples) && role.examples.length) {
-        const ul = document.createElement("ul");
-        ul.className = "examplesList";
-        for (const ex of role.examples.slice(0, 5)) {
-          const li = document.createElement("li");
-          li.textContent = ex;
-          ul.appendChild(li);
+        const grid = document.createElement("div");
+        grid.className = "examplesList";
+        for (const ex of role.examples) {
+          const item = document.createElement("span");
+          item.className = "examplesItem";
+          item.textContent = ex;
+          grid.appendChild(item);
         }
-        body.appendChild(ul);
+        body.appendChild(grid);
       }
 
       card.appendChild(body);
