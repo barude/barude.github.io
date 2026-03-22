@@ -94,7 +94,7 @@
         /* --- WORKSPACE --- */
         #workspace {
             flex: 1; overflow-y: scroll; display: flex; justify-content: center;
-            padding: 0; background: var(--bg); scroll-behavior: smooth;
+            padding: 0; background: var(--bg); overflow-anchor: none;
         }
         #page {
             width: 850px; height: max-content; min-height: 100vh; padding-bottom: 60vh;
@@ -977,6 +977,18 @@
             this.saveToHistory();
         }
 
+        _getWorkspaceScroll() {
+            const workspace = document.getElementById('workspace');
+            if (!workspace) return null;
+            return { workspace, top: workspace.scrollTop, left: workspace.scrollLeft };
+        }
+
+        _restoreWorkspaceScroll(snapshot) {
+            if (!snapshot || !snapshot.workspace) return;
+            snapshot.workspace.scrollTop = snapshot.top;
+            snapshot.workspace.scrollLeft = snapshot.left;
+        }
+
         _resetHistoryToCurrentState() {
             this._clearAllInputDebounceTimers();
             this.history = [JSON.parse(JSON.stringify(this.state))];
@@ -1095,12 +1107,13 @@
 	            return item.isContainer ? this.renderContainer(item, path) : this.renderBlock(item, path);
 	        }
 
-	        render(useBuffer = false) {
-	            const buildFragment = () => {
-	                const fragment = document.createDocumentFragment();
-	                this.state.forEach((item, idx) => fragment.appendChild(this._renderItem(item, [idx])));
-	                return fragment;
-	            };
+        render(useBuffer = false) {
+            const scrollSnapshot = this._getWorkspaceScroll();
+            const buildFragment = () => {
+                const fragment = document.createDocumentFragment();
+                this.state.forEach((item, idx) => fragment.appendChild(this._renderItem(item, [idx])));
+                return fragment;
+            };
 
 	            if (useBuffer && this.pageBuffer) {
 	                this.pageBuffer.innerHTML = '';
@@ -1118,7 +1131,7 @@
 	                // Important: clear the hidden buffer to avoid duplicate element IDs in the DOM
 	                // (screen readers, autofill, and validators treat hidden inputs as part of the same document).
 	                this.pageBuffer.innerHTML = '';
-	            } else {
+                } else {
                 const fragment = buildFragment();
                 this.page.querySelectorAll('.type-select-menu').forEach(m => { if (m._obs) { m._obs.disconnect(); m._obs = null; } });
                 if (this.page.replaceChildren) {
@@ -1129,10 +1142,13 @@
                 }
             }
 
-	            this.updateSelectionUI();
-	            const sm = document.getElementById('scene-map');
-	            const sceneMapOpen = !!(sm && sm.classList.contains('open'));
-	            if (!this.isUndoRedo || sceneMapOpen) {
+            this._restoreWorkspaceScroll(scrollSnapshot);
+            requestAnimationFrame(() => this._restoreWorkspaceScroll(scrollSnapshot));
+
+            this.updateSelectionUI();
+            const sm = document.getElementById('scene-map');
+            const sceneMapOpen = !!(sm && sm.classList.contains('open'));
+            if (!this.isUndoRedo || sceneMapOpen) {
 	                this.buildSceneMap();
 	                this.sceneMapNeedsRebuild = false;
 	            } else {
@@ -1241,6 +1257,7 @@
 	            const ta = document.createElement('textarea');
 	            ta.value = text;
 	            ta.id = this._domIdForInputPath(path);
+                ta.rows = 1;
 
 	            const syncHeight = () => { ta.style.height = 'auto'; ta.style.height = replicator.scrollHeight + 'px'; };
 	            let editStartValue = text, hasSavedForThisEdit = false;
@@ -1284,8 +1301,7 @@
                 }
                 hasSavedForThisEdit = false;
             };
-
-            setTimeout(syncHeight, 0);
+                requestAnimationFrame(syncHeight);
 
 	            ta.onkeydown = (e) => {
 	                // Escape nested groups while typing:
@@ -1553,7 +1569,7 @@
 	        }
 	
 	        focus(path) {
-	            setTimeout(() => {
+	            requestAnimationFrame(() => {
 	                if (!Array.isArray(path) || path.length === 0) return;
 	                const item = this._getItemByPath(path);
 	                let focusPath = path;
@@ -1563,8 +1579,17 @@
 	                }
 	                const id = this._domIdForInputPath(focusPath);
 	                const el = document.getElementById(id);
-	                if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
-	            }, 10);
+                    if (!el) return;
+                    const scrollSnapshot = this._getWorkspaceScroll();
+                    try {
+                        el.focus({ preventScroll: true });
+                    } catch (err) {
+                        el.focus();
+                        this._restoreWorkspaceScroll(scrollSnapshot);
+                    }
+                    el.setSelectionRange(el.value.length, el.value.length);
+                    this._restoreWorkspaceScroll(scrollSnapshot);
+	            });
 	        }
 
 	        handleWorkspaceClick(e) {
