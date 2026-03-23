@@ -40,13 +40,13 @@
 	        }
 
         body.light-mode #floating-actions button {
-            background: rgba(250, 248, 244, 0.9);
+            background: rgba(255, 255, 255, 0.62);
             color: #4a4844;
             border: 1px solid rgba(200, 195, 185, 0.5);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         body.light-mode #floating-actions button:hover {
-            background: rgba(245, 243, 239, 0.95);
+            background: rgba(255, 255, 255, 0.8);
             border-color: rgba(180, 175, 165, 0.7);
         }
 	        body.light-mode .container-box { border-left-color: var(--group-line-1); }
@@ -76,20 +76,82 @@
 
         /* --- FLOATING ACTION BUTTONS --- */
         #floating-actions {
-            position: fixed; top: 20px; right: 20px;
-            display: flex; flex-direction: column; gap: 8px; z-index: 100;
+            position: fixed; top: 24px; right: 24px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
+            align-items: flex-end;
+        }
+        #floating-actions-stack {
+            display: flex; flex-direction: column; gap: 8px;
+            align-items: flex-end;
+            padding: 10px;
+            border-radius: 22px;
+            background: rgba(18, 18, 18, 0.58);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2);
+            transform-origin: top right;
+            transition: opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, max-height 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            max-height: 520px;
+            overflow: hidden;
         }
         #floating-actions button {
-            width: 40px; height: 40px;
-            background: rgba(34, 34, 34, 0.85); color: #ccc;
-            border: 1px solid rgba(68, 68, 68, 0.6); border-radius: 6px;
+            width: 38px; height: 38px;
+            background: rgba(255, 255, 255, 0.035); color: rgba(216, 212, 205, 0.84);
+            border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px;
             cursor: pointer; font-size: 18px;
             display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s ease; backdrop-filter: blur(8px); padding: 0;
+            transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+            backdrop-filter: blur(8px); padding: 0;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
-        #floating-actions button:hover { background: rgba(68, 68, 68, 0.9); color: white; border-color: rgba(100, 100, 100, 0.8); transform: scale(1.05); }
-        #floating-actions button:active { transform: scale(0.95); }
+        #floating-actions button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.96);
+            border-color: rgba(255, 255, 255, 0.14);
+            transform: translateY(-1px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 22px rgba(0, 0, 0, 0.18);
+        }
+        #floating-actions button:active { transform: translateY(0); }
         #floating-actions button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        #floating-menu-toggle {
+            width: 32px; height: 32px;
+            border-radius: 999px;
+            font-size: 0;
+            opacity: 0.84;
+            background: rgba(255, 255, 255, 0.025);
+            color: rgba(216, 212, 205, 0.62);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        #floating-menu-toggle svg {
+            width: 16px;
+            height: 16px;
+            display: block;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        #floating-actions.collapsed #floating-actions-stack {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-6px) scale(0.985);
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-color: transparent;
+            background: transparent;
+            box-shadow: none;
+        }
+        #floating-actions.collapsed #floating-menu-toggle svg {
+            transform: rotate(180deg);
+        }
+        body.light-mode #floating-menu-toggle {
+            background: rgba(255, 255, 255, 0.5);
+            color: rgba(74, 72, 68, 0.72);
+        }
+        body.light-mode #floating-actions.collapsed #floating-actions-stack,
+        body.light-mode #floating-actions-stack {
+            background: rgba(250, 248, 244, 0.74);
+            border-color: rgba(200, 195, 185, 0.4);
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+        }
 
         /* --- WORKSPACE --- */
         #workspace {
@@ -138,9 +200,10 @@
         .row:has(.type-select-menu.open) .gutter { z-index: 10001; }
         .type-select-wrapper:has(.type-select-menu.open) { z-index: 10002; position: relative; }
         /* Version/type gutter visibility:
-           - Visible only for the active block (focus-within) or explicitly selected blocks.
-           - Hover alone does not reveal controls (prevents flicker while moving the mouse). */
-        .row:focus-within .gutter, .row.multi-selected .gutter { opacity: 1; }
+           - Visible for explicit row multi-selection.
+           - Visible when text is actively selected inside a textarea.
+           - Stays visible while the user is interacting with the gutter itself. */
+        .row.text-selected .gutter, .row.multi-selected .gutter, .row.gutter-active .gutter { opacity: 1; }
 
         .gutter-container {
             display: flex; align-items: center; gap: 0;
@@ -148,7 +211,7 @@
             border-radius: 4px; padding: 0; position: relative;
             box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
         }
-        .row:focus-within .gutter-container, .row.multi-selected .gutter-container {
+        .row.text-selected .gutter-container, .row.multi-selected .gutter-container, .row.gutter-active .gutter-container {
             background: #151515; border-color: rgba(220, 220, 220, 0.2);
         }
 
@@ -235,7 +298,7 @@
         body.light-mode select.type-select option:hover { background: rgba(245, 243, 239, 0.98); color: #4a4844; }
         body.light-mode select.type-select option:checked, body.light-mode select.type-select option:focus { background: rgba(240, 238, 234, 0.98); color: var(--accent); font-weight: 500; }
         body.light-mode .gutter-container { background: #f5f3ef; border: 1px solid rgba(200, 195, 185, 0.3); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03); }
-        body.light-mode .row:focus-within .gutter-container, body.light-mode .row.multi-selected .gutter-container { background: #f8f6f2; border-color: rgba(200, 195, 185, 0.4); }
+        body.light-mode .row.text-selected .gutter-container, body.light-mode .row.multi-selected .gutter-container, body.light-mode .row.gutter-active .gutter-container { background: #f8f6f2; border-color: rgba(200, 195, 185, 0.4); }
         body.light-mode .type-select-button { background: rgba(250, 248, 244, 0.6); color: #5a5854; border: 1px solid rgba(200, 195, 185, 0.6); border-bottom: 1px solid rgba(180, 175, 165, 0.8); }
         body.light-mode .type-select-button:hover { color: #4a4844; border-color: rgba(180, 175, 165, 0.8); border-bottom-color: rgba(160, 155, 145, 0.9); background: rgba(250, 248, 244, 0.8); }
         body.light-mode .type-select-button.open { color: var(--accent); border-color: rgba(74, 144, 226, 0.4); border-bottom-color: var(--accent); background: rgba(250, 248, 244, 0.9); }
@@ -739,13 +802,21 @@
 <body>
 
 <div id="floating-actions">
-    <button onclick="app.clear()" title="New Document">➕</button>
-    <button onclick="app.saveJSON()" title="Save">💾</button>
-    <button onclick="document.getElementById('load').click()" title="Load">📂</button>
-    <button onclick="app.exportPDF()" title="Export PDF">📄</button>
-    <button id="theme-toggle" onclick="app.toggleTheme()" title="Toggle Light/Dark Mode">◑</button>
-    <button onclick="app.toggleSceneMap()" title="Toggle Scene Map">🎬</button>
-    <button onclick="app.openTitlePage()" title="Title Page">📋</button>
+    <button id="floating-menu-toggle" type="button" onclick="app.toggleFloatingMenu(event)" aria-label="Actions">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M10.5 3.5L6.25 8L10.5 12.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6.75 3.5L2.5 8L6.75 12.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
+        </svg>
+    </button>
+    <div id="floating-actions-stack">
+        <button onclick="app.clear()" title="New Document">➕</button>
+        <button onclick="app.saveJSON()" title="Save">💾</button>
+        <button onclick="document.getElementById('load').click()" title="Load">📂</button>
+        <button onclick="app.exportPDF()" title="Export PDF">📄</button>
+        <button id="theme-toggle" data-theme-toggle onclick="app.toggleTheme()" title="Toggle Light/Dark Mode">◑</button>
+        <button onclick="app.toggleSceneMap()" title="Toggle Scene Map">🎬</button>
+        <button onclick="app.openTitlePage()" title="Title Page">📋</button>
+    </div>
 </div>
 
 <div id="selection-bar">
@@ -901,6 +972,9 @@
             this.pageBuffer = document.getElementById('page-buffer');
             this.selBar = document.getElementById('selection-bar');
             this.selCount = document.getElementById('sel-count');
+            this.floatingActions = document.getElementById('floating-actions');
+            this.floatingActionsStack = document.getElementById('floating-actions-stack');
+            this.floatingMenuToggle = document.getElementById('floating-menu-toggle');
 
 	            // Selection model (nested-group aware):
 	            // - `selectionScopePath` identifies the container whose children are being multi-selected.
@@ -911,6 +985,8 @@
 	            this.lastFocusedIndexInScope = null;
 	            this.selectionScopePath = null;
 	            this.multiSelections = [];
+            this.pinnedGutterPathKey = null;
+            this.menuCollapsed = localStorage.getItem('nvlastdraft_menu_collapsed') === '1';
             this.scenes = [];
 
             this.draggedSceneBlockId = null;
@@ -928,11 +1004,13 @@
             this._pdfFontReady = false;
 
             this.initTheme();
+            this.applyFloatingMenuState();
             this.initDragDrop();
             this.saveToHistory();
             this.render();
             window.addEventListener('paste', (e) => this.handlePaste(e), true);
             window.addEventListener('keydown', (e) => this.handleGlobalKey(e));
+            document.addEventListener('selectionchange', () => this.updateTextSelectionUI());
 
             const workspace = document.getElementById('workspace');
             workspace.addEventListener('click', (e) => this.handleWorkspaceClick(e));
@@ -941,6 +1019,10 @@
                 if (!e.target.closest('.type-select-wrapper')) {
                     document.querySelectorAll('.type-select-menu.open').forEach(m => m.classList.remove('open'));
                     document.querySelectorAll('.type-select-button.open').forEach(b => b.classList.remove('open'));
+                }
+                if (!e.target.closest('#floating-actions') && !this.menuCollapsed) this.setMenuCollapsed(true);
+                if (!e.target.closest('.gutter') && !e.target.closest('.type-select-wrapper') && !this._hasActiveTextareaSelection()) {
+                    this.clearPinnedGutter();
                 }
             });
 
@@ -1146,6 +1228,7 @@
             requestAnimationFrame(() => this._restoreWorkspaceScroll(scrollSnapshot));
 
             this.updateSelectionUI();
+            this.applyFloatingMenuState();
             const sm = document.getElementById('scene-map');
             const sceneMapOpen = !!(sm && sm.classList.contains('open'));
             if (!this.isUndoRedo || sceneMapOpen) {
@@ -1154,24 +1237,32 @@
 	            } else {
 	                this.sceneMapNeedsRebuild = true;
 	            }
+            requestAnimationFrame(() => this.updateTextSelectionUI());
 	            this.isUndoRedo = false;
 	        }
 
 	        renderBlock(block, path) {
 	            const idx = path[path.length - 1];
 	            const scopePath = this._scopePathFromItemPath(path);
+                const pathKey = this._pathKey(path);
 	            const row = document.createElement('div');
 	            row.className = `row ${block.type}`;
 	            row.id = (path.length === 1) ? `row-${idx}` : `row-p-${path.join('-')}`;
+                row.dataset.path = pathKey;
 
 	            const text = block.versions[block.active];
 	            if (/[\u0600-\u06FF]/.test(text)) row.setAttribute('dir', 'rtl');
 	            if (this.isBlockSelected(path)) row.classList.add('multi-selected');
+                if (this.pinnedGutterPathKey === pathKey) row.classList.add('gutter-active');
 
 	            row.onmousedown = (e) => this.handleRowClick(e, path);
 
 	            const gutter = document.createElement('div');
 	            gutter.className = 'gutter';
+                gutter.onmousedown = (e) => {
+                    e.stopPropagation();
+                    this.pinGutter(path);
+                };
 	            const gutterContainer = document.createElement('div');
 	            gutterContainer.className = 'gutter-container';
 
@@ -1259,10 +1350,13 @@
 	            ta.id = this._domIdForInputPath(path);
                 ta.rows = 1;
 
+                const refreshSelectionState = () => this.updateTextSelectionUI();
+
 	            const syncHeight = () => { ta.style.height = 'auto'; ta.style.height = replicator.scrollHeight + 'px'; };
 	            let editStartValue = text, hasSavedForThisEdit = false;
 
 	            ta.onfocus = (e) => {
+                    if (this.pinnedGutterPathKey && this.pinnedGutterPathKey !== pathKey) this.clearPinnedGutter();
 	                if (!hasSavedForThisEdit) { editStartValue = ta.value; this.saveToHistory(); hasSavedForThisEdit = true; }
 	                if (!e.shiftKey) {
 	                    this.lastFocusedPath = path;
@@ -1270,6 +1364,7 @@
 	                    this.lastFocusedIndexInScope = idx;
 	                    if (this.multiSelections.length > 0) this.clearSelection(path);
 	                }
+                    refreshSelectionState();
 	            };
 
             ta.oninput = (e) => {
@@ -1290,18 +1385,22 @@
                 syncHeight(); this.save(); this.buildSceneMap();
             };
 
-            ta.onblur = () => {
-                const t = this.inputDebounceTimers.get(ta);
-                if (t) { clearTimeout(t); this.inputDebounceTimers.delete(ta); }
-                const searchTerm = document.getElementById('scene-search')?.value.trim() || '';
-                if (!searchTerm) replicator.innerHTML = this.parseMarkdown(ta.value) + '\u200B';
+	            ta.onblur = () => {
+	                const t = this.inputDebounceTimers.get(ta);
+	                if (t) { clearTimeout(t); this.inputDebounceTimers.delete(ta); }
+	                const searchTerm = document.getElementById('scene-search')?.value.trim() || '';
+	                if (!searchTerm) replicator.innerHTML = this.parseMarkdown(ta.value) + '\u200B';
                 if (ta.value !== editStartValue) {
                     const cur = JSON.stringify(this.state);
-                    if (this.history.length > 0 && this.historyIndex >= 0 && JSON.stringify(this.history[this.historyIndex]) !== cur) this.saveToHistory();
-                }
-                hasSavedForThisEdit = false;
-            };
+	                    if (this.history.length > 0 && this.historyIndex >= 0 && JSON.stringify(this.history[this.historyIndex]) !== cur) this.saveToHistory();
+	                }
+	                hasSavedForThisEdit = false;
+                    requestAnimationFrame(refreshSelectionState);
+	            };
                 requestAnimationFrame(syncHeight);
+                ta.addEventListener('select', refreshSelectionState);
+                ta.addEventListener('keyup', refreshSelectionState);
+                ta.addEventListener('mouseup', () => requestAnimationFrame(refreshSelectionState));
 
 	            ta.onkeydown = (e) => {
 	                // Escape nested groups while typing:
@@ -2425,8 +2524,56 @@
             this.updateThemeIcon();
         }
         updateThemeIcon() {
-            const btn = document.getElementById('theme-toggle');
-            if (btn) { const light = document.body.classList.contains('light-mode'); btn.textContent = light ? '◐' : '◑'; btn.title = light ? 'Switch to Dark Mode' : 'Switch to Light Mode'; }
+            const light = document.body.classList.contains('light-mode');
+            document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
+                btn.textContent = light ? '◐' : '◑';
+                btn.title = light ? 'Switch to Dark Mode' : 'Switch to Light Mode';
+            });
+        }
+        applyFloatingMenuState() {
+            if (!this.floatingActions || !this.floatingMenuToggle) return;
+            this.floatingActions.classList.toggle('collapsed', this.menuCollapsed);
+            this.floatingMenuToggle.title = this.menuCollapsed ? 'Expand menu' : 'Collapse menu';
+            this.floatingMenuToggle.setAttribute('aria-expanded', this.menuCollapsed ? 'false' : 'true');
+            localStorage.setItem('nvlastdraft_menu_collapsed', this.menuCollapsed ? '1' : '0');
+        }
+        setMenuCollapsed(collapsed) {
+            this.menuCollapsed = !!collapsed;
+            this.applyFloatingMenuState();
+        }
+        toggleFloatingMenu(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            this.setMenuCollapsed(!this.menuCollapsed);
+        }
+        _pathKey(path) {
+            return Array.isArray(path) ? path.join('.') : '';
+        }
+        _hasActiveTextareaSelection() {
+            const active = document.activeElement;
+            return !!(active && active.tagName === 'TEXTAREA' && active.selectionStart !== active.selectionEnd && this.page?.contains(active));
+        }
+        pinGutter(path) {
+            this.pinnedGutterPathKey = this._pathKey(path);
+            this.updateTextSelectionUI();
+        }
+        clearPinnedGutter() {
+            if (!this.pinnedGutterPathKey) return;
+            this.pinnedGutterPathKey = null;
+            this.updateTextSelectionUI();
+        }
+        updateTextSelectionUI() {
+            if (!this.page) return;
+            const active = document.activeElement;
+            const selectedRow = (active && active.tagName === 'TEXTAREA' && this.page.contains(active) && active.selectionStart !== active.selectionEnd)
+                ? active.closest('.row')
+                : null;
+            this.page.querySelectorAll('.row').forEach((row) => {
+                row.classList.toggle('text-selected', row === selectedRow);
+                row.classList.toggle('gutter-active', !!this.pinnedGutterPathKey && row.dataset.path === this.pinnedGutterPathKey);
+            });
         }
 
 	        buildSceneMap() {
